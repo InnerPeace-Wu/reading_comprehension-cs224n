@@ -1,3 +1,11 @@
+# Read Comprehension
+
+## TO DO:
+
+- [x] Plot histgrams of context, question, answer lengthes.
+- [ ] preprocess the inputs with mask.
+
+
 # Programming Assignment 4
 Welcome to CS224N Project Assignment 4 Reading Comprehension.
 The project has several dependencies that have to be satisfied before running the code. You can install them using your preferred method -- we list here the names of the packages using `pip`.
