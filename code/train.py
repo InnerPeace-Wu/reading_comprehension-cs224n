@@ -10,6 +10,8 @@ import tensorflow as tf
 from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
 
+from utils.mask_inputs import mask_dataset
+
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -54,6 +56,7 @@ def initialize_vocab(vocab_path):
         with tf.gfile.GFile(vocab_path, mode="rb") as f:
             rev_vocab.extend(f.readlines())
         rev_vocab = [line.strip('\n') for line in rev_vocab]
+        # (word, index)
         vocab = dict([(x, y) for (y, x) in enumerate(rev_vocab)])
         return vocab, rev_vocab
     else:
@@ -79,7 +82,16 @@ def get_normalized_train_dir(train_dir):
 def main(_):
 
     # Do what you need to load datasets from FLAGS.data_dir
-    dataset = None
+    set_names = ['train', 'val']
+    suffixes = ['context', 'question']
+    dataset = mask_dataset(FLAGS.data_dir, set_names, suffixes)
+    '''
+    dataset is a dict with
+    {'train-context': [(data, mask),...],
+     'train-question': [(data, mask),...],
+     'val-context': [(data, mask),...],
+     'val-question': [(data,mask),...]}
+    '''
 
     embed_path = FLAGS.embed_path or pjoin("data", "squad", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
     vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")

@@ -3,7 +3,8 @@
 ## TO DO:
 
 - [x] Plot histgrams of context, question, answer lengthes.
-- [ ] preprocess the inputs with mask.
+- [x] preprocess the inputs with mask.
+- [ ] make decision how to represent the answer.
 
 
 # Programming Assignment 4

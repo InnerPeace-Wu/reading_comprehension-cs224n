@@ -2,8 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 from os.path import join as pjoin
+import Config
 
-ROOT_DIR = '../..'
+cfg = Config.Config()
+ROOT_DIR = cfg.ROOT_DIR
 Data_dir = 'data/squad'
 # suffixes = ['context', 'question', 'answer']
 suffixes = ['context', 'question']

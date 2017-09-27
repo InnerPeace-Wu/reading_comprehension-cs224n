@@ -1,6 +1,7 @@
 # a4
 data/
 download/
+cache/
 # pycharm
 .idea
 # Byte-compiled / optimized / DLL files
