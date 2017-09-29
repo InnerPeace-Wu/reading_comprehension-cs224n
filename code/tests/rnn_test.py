@@ -3,7 +3,7 @@ sys.path.append('..')
 from os.path import join as pjoin
 import numpy as np
 import tensorflow as tf
-from utils.config import config as cfg
+from utils.Config import Config as cfg
 from utils.mask_inputs import mask_input
 import tensorflow.contrib.rnn as rnn
 
@@ -38,25 +38,25 @@ def rnn_test():
 
 
     with tf.graph().as_default():
-        embedding_tf = tf.variable(embedding)
-        x = tf.placeholder(tf.int32, (none, 25))
-        x_m = tf.placeholder(tf.bool, (none, 25))
-        l_x = tf.placeholder(tf.int32, (none,))
+        # embedding_tf = tf.Variable(embedding)
+        x = tf.placeholder(tf.int32, (None, 25))
+        x_m = tf.placeholder(tf.bool, (None, 25))
+        l_x = tf.placeholder(tf.int32, (None,))
         print(x)
         print(x_m)
         print(l_x)
 
-        embed = tf.nn.embedding_lookup(embedding_tf, x)
+        embed = tf.nn.embedding_lookup(embedding, x)
         # x_in = tf.boolean_mask(embed, x_m)
         print('shape of embed {}'.format(embed.shape))
         # print('shape of x_in {}'.format(x_in.shape))
 
         num_hidden = 5
-        lstm_fw_cell = rnn.basiclstmcell(num_hidden, forget_bias=1.0)
-        lstm_bw_cell = rnn.basiclstmcell(num_hidden, forget_bias=1.0)
+        lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
         outputs, outputs_states = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell,lstm_bw_cell,
                                                               embed,sequence_length=sequence_length(x_m),dtype=tf.float64)
-        with tf.session() as sess:
+        with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             outp, outps = sess.run([ outputs, outputs_states], feed_dict={x:inputs,
                                                                          x_m:masks})

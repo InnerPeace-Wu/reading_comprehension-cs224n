@@ -11,3 +11,5 @@ class Config:
     ROOT_DIR = os.path.abspath('../..')
     # data directory
     DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
+    # number of hidden units for lstm
+    lstm_num_hidden = 32
