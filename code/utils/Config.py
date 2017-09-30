@@ -13,5 +13,3 @@ class Config:
     DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
     # number of hidden units for lstm
     lstm_num_hidden = 32
-    # embedding size
-    embed_size = 100
