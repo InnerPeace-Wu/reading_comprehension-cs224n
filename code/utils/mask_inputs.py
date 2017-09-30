@@ -6,6 +6,7 @@ import Config
 
 cfg = Config.Config()
 ROOT_DIR = cfg.ROOT_DIR
+
 suffixes = ['context', 'question']
 
 # for test
@@ -56,7 +57,7 @@ def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
     for sn in set_names:
         data_path = pjoin(data_dir, sn + suffix)
         assert os.path.exists(data_path), 'the path {} does not exist, please check again.'.format(data_path)
-        print('Reading answer from file: {}-{}'.format(sn, suffix))
+        print('Reading answer from file: {}{}'.format(sn, suffix))
         with open(data_path, 'r') as fdata:
             answer = [map(int, line.strip().split(' ')) for line in fdata.readlines()]
         name = sn + '_answer'
@@ -77,8 +78,8 @@ def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'que
                 raw_data = [map(int, line.strip().split(' ')) for line in fdata.readlines()]
             print('The raw data length is {}'.format(len(raw_data)))
             name = sn + '_' + suf
-            masked_data = [mask_input(rd, max_len) for rd in raw_data]
-            dict[name] = masked_data
+            # masked_data = [mask_input(rd, max_len) for rd in raw_data]
+            dict[name] = raw_data
 
     return dict
 
@@ -106,9 +107,14 @@ if __name__ == '__main__':
     # print(sys.getsizeof(data) / 1.0e6)
 
     # test3
-    file_path = mask_input_test(['test'], 'test')
-    print(np.load(file_path + '.npy'))
+    # file_path = mask_input_test(['test'], 'test')
+    # print(np.load(file_path + '.npy'))
 
     # test4
     # mask_input_test(suffixes)
+
+    # read answer test
+    dict_an = read_answers(data_path)
+    for k, v in dict_an.items():
+        print('set name : {} with top 10 values: {}'.format(k, v[:10]))
 

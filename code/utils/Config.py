@@ -4,7 +4,7 @@ from os.path import join as pjoin
 
 class Config:
     # maximum length of context
-    context_max_len = 350
+    context_max_len = 250
     # maximum length of question
     question_max_len = 25
     # absolute path of the root directory.
