@@ -11,6 +11,8 @@ from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
 
 from utils.mask_inputs import mask_dataset
+from utils.mask_inputs import read_answers, read_raw_answers
+from utils.Config import Config as cfg
 
 import logging
 
@@ -81,10 +83,11 @@ def get_normalized_train_dir(train_dir):
 
 def main(_):
 
+    data_dir = cfg.DATA_DIR
     # Do what you need to load datasets from FLAGS.data_dir
     set_names = ['train', 'val']
     suffixes = ['context', 'question']
-    dataset = mask_dataset(FLAGS.data_dir, set_names, suffixes)
+    dataset = mask_dataset(data_dir, set_names, suffixes)
     '''
     dataset is a dict with
     {'train-context': [(data, mask),...],
@@ -92,13 +95,18 @@ def main(_):
      'val-context': [(data, mask),...],
      'val-question': [(data,mask),...]}
     '''
+    answers = read_answers(data_dir)
+    raw_answers = read_raw_answers(data_dir)
 
     embed_path = FLAGS.embed_path or pjoin("data", "squad", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
-    vocab_path = FLAGS.vocab_path or pjoin(FLAGS.data_dir, "vocab.dat")
+    # vocab_path = FLAGS.vocab_path or pjoin(data_dir, "vocab.dat")
+    vocab_path = pjoin(data_dir, "vocab.dat")
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
-    encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
-    decoder = Decoder(output_size=FLAGS.output_size)
+    # encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
+    # decoder = Decoder(output_size=FLAGS.output_size)
+    encoder = Encoder()
+    decoder = Decoder()
 
     qa = QASystem(encoder, decoder)
 
@@ -112,13 +120,20 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
 
     with tf.Session() as sess:
+        init = tf.global_variables_initializer()
+        sess.run(init)
         load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
         initialize_model(sess, qa, load_train_dir)
 
         save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
-        qa.train(sess, dataset, save_train_dir)
+        # saver = tf.train.Saver()
+        # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
+        qa.train(sess, dataset,answers,save_train_dir, raw_answers=raw_answers,
+                 rev_vocab=rev_vocab, debug_num=100)
 
-        qa.evaluate_answer(sess, dataset, vocab, FLAGS.evaluate, log=True)
+        qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+             training=True, log=True)
+
 
 if __name__ == "__main__":
     tf.app.run()

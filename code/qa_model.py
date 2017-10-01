@@ -10,10 +10,28 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 from tensorflow.python.ops import variable_scope as vs
 
+from utils.matchLSTM_cell import matchLSTMcell
+import tensorflow.contrib.rnn as rnn
+from utils.Config import Config as cfg
+import os
+from os.path import join as pjoin
+import matplotlib.pyplot as plt
+import random
+
 from evaluate import exact_match_score, f1_score
 
 logging.basicConfig(level=logging.INFO)
 
+root_dir = cfg.ROOT_DIR
+data_dir = cfg.DATA_DIR
+num_hidden = cfg.lstm_num_hidden
+test_file_path = pjoin(root_dir, 'cache', 'test.test_masked.npy')
+context_max_len = cfg.context_max_len
+question_max_len = cfg.question_max_len
+embed_dim  = 100
+
+def sequence_length(sequence_mask):
+    return tf.reduce_sum(tf.cast(sequence_mask, tf.int32), axis=1)
 
 def get_optimizer(opt):
     if opt == "adam":
@@ -26,34 +44,70 @@ def get_optimizer(opt):
 
 
 class Encoder(object):
-    def __init__(self, size, vocab_dim):
+    def __init__(self, vocab_dim=100, size=2 * num_hidden):
         self.size = size
         self.vocab_dim = vocab_dim
 
-    def encode(self, inputs, masks, encoder_state_input):
+    # def encode(self, inputs, masks, encoder_state_input):
+    def encode(self, context, context_m, question, question_m, embedding):
         """
-        In a generalized encode function, you pass in your inputs,
-        masks, and an initial
-        hidden state input into this function.
-
-        :param inputs: Symbolic representations of your input
-        :param masks: this is to make sure tf.nn.dynamic_rnn doesn't iterate
-                      through masked steps
-        :param encoder_state_input: (Optional) pass this as initial hidden state
-                                    to tf.nn.dynamic_rnn to build conditional representations
         :return: an encoded representation of your input.
                  It can be context-level representation, word-level representation,
                  or both.
+
+                 with shape [batch_size, context_max_len, 2 * self.size]
         """
 
-        return
+        dtype = tf.float32
+        context_embed = tf.nn.embedding_lookup(embedding, context)
+        print('shape of context embed {}'.format(context_embed.shape))
+        question_embed = tf.nn.embedding_lookup(embedding, question)
+        print('shape of question embed {}'.format(question_embed.shape))
+
+        con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(con_lstm_fw_cell,con_lstm_bw_cell,
+                                                            context_embed,
+                                                            sequence_length=sequence_length(context_m),
+                                                            dtype=dtype, scope='con_lstm')
+        H_context = tf.concat(con_outputs, 2)
+        print('shape of H_context is {}'.format(H_context.shape))
+        # assert (None, context_max_len, 2 * num_hidden) == H_context.shape, \
+        #     'the shape of H_context should be {} but it is {}'.format((None, context_max_len, 2 * num_hidden),
+        #                                                               H_context.shape)
+
+        ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        ques_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        ques_outputs, ques_outputs_states = tf.nn.bidirectional_dynamic_rnn(ques_lstm_fw_cell,
+                                                                            ques_lstm_bw_cell,
+                                                                            question_embed,
+                                                                            sequence_length=sequence_length(question_m),
+                                                                            dtype=dtype, scope='ques_lstm')
+        H_question = tf.concat(ques_outputs, 2)
+        # assert (None, question_max_len, 2 * num_hidden) == H_question.shape, \
+        #     'the shape of H_context should be {} but it is {}'.format((None, question_max_len, 2 * num_hidden),
+        #                                                               H_question.shape)
+        print('shape of H_question is {}'.format(H_question.shape))
+
+        matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
+        matchlstm_bw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
+        H_r, _ = tf.nn.bidirectional_dynamic_rnn(matchlstm_fw_cell, matchlstm_bw_cell,
+                                                 H_context,
+                                                 sequence_length=sequence_length(context_m),
+                                                 dtype=dtype)
+        # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
+        H_r = tf.concat(H_r, axis=2)
+        print('shape of Hr is {}'.format(H_r.shape))
+
+        return H_r
 
 
 class Decoder(object):
-    def __init__(self, output_size):
+    def __init__(self, output_size=2*num_hidden):
         self.output_size = output_size
 
-    def decode(self, knowledge_rep):
+    # def decode(self, knowledge_rep):
+    def decode(self, H_r):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -65,8 +119,38 @@ class Decoder(object):
                               decided by how you choose to implement the encoder
         :return:
         """
+        shape_Hr = tf.shape(H_r)
+        Hr_reshaped= tf.reshape(H_r, [tf.shape(H_r)[0], -1])
+        dtype = tf.float32
 
-        return
+        # xavier_initializer = tf.contrib.layers.xavier_initializer()
+        initializer = tf.uniform_unit_scaling_initializer(1.0)
+        Wr = tf.get_variable('Wr', [context_max_len * 4 * num_hidden, 2 * num_hidden], dtype,
+                             initializer)
+        Wh = tf.get_variable('Wh', [4 * num_hidden, 2 * num_hidden], dtype,
+                             initializer)
+        Wf = tf.get_variable('Wf', [2 * num_hidden, context_max_len], dtype,
+                             initializer)
+        br = tf.get_variable('br', [2 * num_hidden], dtype,
+                             tf.zeros_initializer())
+        bf = tf.get_variable('bf', [context_max_len, ], dtype,
+                             tf.zeros_initializer())
+        #TODO: consider insert dropout
+
+        f = tf.tanh(tf.matmul(Hr_reshaped, Wr) + br)
+        # scores of start token.
+        s_score = tf.matmul(f, Wf) + bf
+        print('shape of s_score is {}'.format(tf.shape(s_score)))
+        Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
+        #[batch_size x shape_Hr[-1]
+        Hr_attend = tf.reduce_sum(tf.multiply(H_r, Ps_tile), axis=1)
+        e_f = tf.tanh(tf.matmul(Hr_reshaped, Wr) +
+                      tf.matmul(Hr_attend, Wh) +
+                      br)
+        e_score = tf.matmul(e_f, Wf) + bf
+        print('shape of e_score is {}'.format(tf.shape(e_score)))
+
+        return s_score, e_score
 
 class QASystem(object):
     def __init__(self, encoder, decoder, *args):
@@ -78,8 +162,16 @@ class QASystem(object):
         :param args: pass in more arguments as needed
         """
 
+        self.encoder = encoder
+        self.decoder = decoder
         # ==== set up placeholder tokens ========
-
+        # shape [batch_size, context_max_length]
+        self.context = tf.placeholder(tf.int32, (None, context_max_len))
+        self.context_m = tf.placeholder(tf.bool, (None, context_max_len))
+        self.question = tf.placeholder(tf.int32, (None, question_max_len))
+        self.question_m = tf.placeholder(tf.bool, (None, question_max_len))
+        self.answer_s = tf.placeholder(tf.int32, (None,))
+        self.answer_e = tf.placeholder(tf.int32, (None,))
 
         # ==== assemble pieces ====
         with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
@@ -88,8 +180,19 @@ class QASystem(object):
             self.setup_loss()
 
         # ==== set up training/updating procedure ====
-        pass
+        self.global_step = tf.Variable(0, trainable=False)
+        starter_learning_rate = 1e-3
+        learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
+                                                   1000, 0.96, staircase=True)
+        self.optimizer = tf.train.AdamOptimizer(learning_rate)
+        self.train_op = self.optimizer.minimize(self.final_loss)
 
+        #TODO: consider graidents clipping.
+        gradients = self.optimizer.compute_gradients(self.final_loss)
+        grad = [x[0] for x in gradients]
+        self.grad_norm = tf.global_norm(grad)
+
+        self.saver = tf.train.Saver()
 
     def setup_system(self):
         """
@@ -98,7 +201,9 @@ class QASystem(object):
         to assemble your reading comprehension system!
         :return:
         """
-        raise NotImplementedError("Connect all parts of your system here!")
+        H_r = self.encoder.encode(self.context, self.context_m, self.question,
+                                  self.question_m, self.embedding)
+        self.s_score, self.e_score = self.decoder.decode(H_r)
 
 
     def setup_loss(self):
@@ -107,70 +212,110 @@ class QASystem(object):
         :return:
         """
         with vs.variable_scope("loss"):
-            pass
+            loss_s = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=self.s_score, labels=self.answer_s)
+
+        loss_e = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            logits=self.e_score, labels=self.answer_e
+        )
+
+        self.final_loss = tf.reduce_mean(loss_e + loss_s)
 
     def setup_embeddings(self):
         """
         Loads distributed word representations based on placeholder tokens
         :return:
         """
-        with vs.variable_scope("embeddings"):
-            pass
+        embed_path = pjoin(data_dir, "glove.trimmed.100.npz")
+        self.embedding = np.load(embed_path)['glove']
+        self.embedding = tf.Variable(self.embedding, dtype=tf.float32, trainable=False)
 
-    def optimize(self, session, train_x, train_y):
+    def optimize(self, session, context, question, answer):
         """
         Takes in actual data to optimize your model
         This method is equivalent to a step() function
         :return:
         """
-        input_feed = {}
+        # input_feed = {}
+        context_data = [x[0] for x in context]
+        context_masks = [x[1] for x in context]
+        question_data = [x[0] for x in question]
+        question_masks = [x[1] for x in question]
+        answer_start = [x[0] for x in answer]
+        answer_end = [x[1] for x in answer]
+
+        # print('question_masks shape {}'.format(np.array(question_masks).shape))
 
         # fill in this feed_dictionary like:
         # input_feed['train_x'] = train_x
+        input_feed = {self.context: context_data,
+                      self.context_m: context_masks,
+                      self.question: question_data,
+                      self.question_m:question_masks,
+                      self.answer_s: answer_start,
+                      self.answer_e: answer_end}
 
-        output_feed = []
+        output_feed = [self.train_op, self.final_loss, self.grad_norm]
 
         outputs = session.run(output_feed, input_feed)
 
         return outputs
 
-    def test(self, session, valid_x, valid_y):
+    def test(self, session, context, question, answer):
         """
         in here you should compute a cost for your validation set
         and tune your hyperparameters according to the validation set performance
         :return:
         """
-        input_feed = {}
+        context_data = [x[0] for x in context]
+        context_masks = [x[1] for x in context]
+        question_data = [x[0] for x in question]
+        question_masks = [x[1] for x in question]
+        answer_start = [x[0] for x in answer]
+        answer_end = [x[1] for x in answer]
 
         # fill in this feed_dictionary like:
-        # input_feed['valid_x'] = valid_x
+        # input_feed['train_x'] = train_x
+        input_feed = {self.context: context_data,
+                      self.context_m: context_masks,
+                      self.question: question_data,
+                      self.question_m:question_masks,
+                      self.answer_s: answer_start,
+                      self.answer_e: answer_end}
 
-        output_feed = []
+        output_feed = [self.final_loss, self.grad_norm]
 
         outputs = session.run(output_feed, input_feed)
 
         return outputs
 
-    def decode(self, session, test_x):
+    def decode(self, session, context, question):
         """
         Returns the probability distribution over different positions in the paragraph
         so that other methods like self.answer() will be able to work properly
         :return:
         """
-        input_feed = {}
+        context_data = [x[0] for x in context]
+        context_masks = [x[1] for x in context]
+        question_data = [x[0] for x in question]
+        question_masks = [x[1] for x in question]
 
         # fill in this feed_dictionary like:
         # input_feed['test_x'] = test_x
+        input_feed = {self.context: context_data,
+                      self.context_m: context_masks,
+                      self.question: question_data,
+                      self.question_m:question_masks}
 
-        output_feed = []
+        output_feed = [self.s_score, self.e_score]
 
         outputs = session.run(output_feed, input_feed)
 
         return outputs
 
-    def answer(self, session, test_x):
+    def answer(self, session, context, question):
 
-        yp, yp2 = self.decode(session, test_x)
+        yp, yp2 = self.decode(session, context, question)
 
         a_s = np.argmax(yp, axis=1)
         a_e = np.argmax(yp2, axis=1)
@@ -194,10 +339,10 @@ class QASystem(object):
         for valid_x, valid_y in valid_dataset:
           valid_cost = self.test(sess, valid_x, valid_y)
 
-
         return valid_cost
 
-    def evaluate_answer(self, session, dataset, sample=100, log=False):
+    def evaluate_answer(self, session, dataset, answers, rev_vocab,
+                        set_name = 'val', training = True,  log=False):
         """
         Evaluate the model's performance using the harmonic mean of F1 and Exact Match (EM)
         with the set of true answer labels
@@ -215,13 +360,64 @@ class QASystem(object):
 
         f1 = 0.
         em = 0.
+        if not isinstance(rev_vocab, np.ndarray):
+            rev_vocab = np.array(rev_vocab)
+
+
+
+        if training:
+            starter = random.randint(0, 4000)
+            ti = random.randint(1, 20)
+            sample = 100
+        else:
+            starter = 0
+            sample = None
+        train_context = dataset['train_context'][ti*starter:ti*starter+sample]
+        train_question = dataset['train_question'][ti*starter:ti*starter+sample]
+        train_answer = answers['raw_train_answer'][ti*starter:ti*starter+sample]
+        train_a_s, train_a_e = self.answer(session, train_context, train_question)
+
+        tf1 = 0.
+        tem = 0.
+        for i, con in enumerate(train_context):
+            prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
+            prediction = rev_vocab[prediction_ids]
+            prediction =  ' '.join(prediction)
+            # if i < 30:
+            #     print('prediction: {}, g-truth: {}'.format( prediction, train_answer[i]))
+            #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
+            tf1 += f1_score(prediction, train_answer[i])
+            tem += exact_match_score(prediction, train_answer[i])
 
         if log:
-            logging.info("F1: {}, EM: {}, for {} samples".format(f1, em, sample))
+            logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
+                         format(tf1/100.0, tem/100., sample))
 
-        return f1, em
+        val_context = dataset[set_name + '_context'][starter:sample+starter]
+        val_question = dataset[set_name + '_question'][starter:sample+starter]
+        # ['Corpus Juris Canonici', 'the Northside', 'Naples', ...]
+        val_answer = answers['raw_val_answer'][starter:sample+starter]
 
-    def train(self, session, dataset, train_dir):
+        val_a_s, val_a_e = self.answer(session, val_context, val_question)
+
+        for i, con in enumerate(val_context):
+            prediction_ids = con[0][val_a_s[i] : val_a_e[i] + 1]
+            prediction = rev_vocab[prediction_ids]
+            prediction = ' '.join(prediction)
+            f1 += f1_score(prediction, val_answer[i])
+            em += exact_match_score(prediction, val_answer[i])
+
+        if log:
+            logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
+                         format(f1/100., em/100., sample))
+
+        if training:
+            return tf1/100., tem/100., f1/100., em/100.
+        else:
+            return f1/100., em/100.
+
+    def train(self, session, dataset, answers, train_dir, debug_num = 0, raw_answers=None,
+              rev_vocab=None):
         """
         Implement main training loop
 
@@ -256,3 +452,107 @@ class QASystem(object):
         num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
         toc = time.time()
         logging.info("Number of params: %d (retreival took %f secs)" % (num_params, toc - tic))
+
+        train_context = dataset['train_context']
+        train_question = dataset['train_question']
+        train_answer = answers['train_answer']
+
+        print_every = 50
+
+        if debug_num:
+            assert isinstance(debug_num, int),'the debug number should be a integer'
+            assert debug_num < len(train_answer), 'check debug number!'
+            train_answer = train_answer[:debug_num]
+            train_context = train_context[:debug_num]
+            train_question = train_question[:debug_num]
+            print_every = 1
+
+        num_example = len(train_answer)
+        self.epochs = cfg.epochs
+        self.losses = []
+        self.norms = []
+        self.train_eval = []
+        self.val_eval = []
+        batch_size = cfg.batch_size
+        batch_num = int(num_example/ batch_size)
+        total_iterations = self.epochs * batch_num
+        iters = 0
+        tic = time.time()
+
+        for ep in xrange(self.epochs):
+            # TODO: add random shuffle.
+            logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
+            ep_loss = 0.
+            for it in xrange(batch_num):
+                context = train_context[it * batch_size: (it + 1)*batch_size]
+                question = train_question[it * batch_size: (it + 1)*batch_size]
+                answer = train_answer[it * batch_size: (it + 1)*batch_size]
+
+                _, loss, grad_norm = self.optimize(session, context,question,answer)
+                ep_loss += loss
+                self.losses.append(loss)
+                self.norms.append(grad_norm)
+                iters += 1
+                if iters % print_every == 0:
+                    toc = time.time()
+                    logging.info('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
+                        iters, total_iterations, loss, grad_norm, toc - tic
+                    ))
+                    tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers,rev_vocab,
+                                                            training=True,log=True)
+                    self.train_eval.append((tf1, tem))
+                    self.val_eval.append((f1, em))
+                    tic = time.time()
+
+            logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
+            save_path = pjoin(train_dir, 'weights')
+            self.saver.save(session, save_path, global_step = iters )
+
+        data_dict = {'losses':self.losses, 'norms':self.norms,
+                     'train_eval':self.train_eval, 'val_eval':self.val_eval}
+        c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
+        data_save_path = pjoin(os.path.abspath('..'), 'cache', 'data'+c_time+'.npy')
+        np.save(data_save_path, data_dict)
+
+        fig, _ = plt.subplots(nrows=2, ncols=1)
+        plt.subplot(2,1,1)
+        plt.plot(self.losses, '-o')
+        plt.xlabel('iterations')
+        plt.ylabel('loss')
+
+        plt.subplot(2,1,2)
+        plt.plot(self.norms, '-o')
+        plt.xlabel('iterations')
+        plt.ylabel('gradients norms')
+        fig.tight_layout()
+
+        output_fig = 'loss-norms'+c_time+'.pdf'
+        plt.savefig(output_fig, format='pdf')
+
+        plt.figure()
+        fig, _ = plt.subplots(nrows=2, ncols=1)
+        plt.subplot(2,1,1)
+        plt.plot([x[0] for x in self.train_eval], '-o')
+        plt.plot([x[0] for x in self.val_eval], '-x')
+        plt.legend(['train', 'val'], loc='upper left')
+        plt.xlabel('iterations')
+        plt.ylabel('f1 score')
+
+        plt.subplot(2,1,2)
+        plt.plot([x[1] for x in self.train_eval], '-o')
+        plt.plot([x[1] for x in self.val_eval], '-x')
+        plt.legend(['train', 'val'], loc='upper left')
+        plt.xlabel('iterations')
+        plt.ylabel('em score')
+
+        fig.tight_layout()
+
+        eval_out = 'f1-em'+c_time+'.pdf'
+        plt.savefig(eval_out, format='pdf')
+
+        plt.show()
+
+
+if __name__ == '__main__':
+    #test
+    qa = QASystem(None, None)

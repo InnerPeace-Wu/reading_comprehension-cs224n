@@ -66,6 +66,19 @@ def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
 
     return dict
 
+def read_raw_answers(data_dir, set_name=['train', 'val'], suffix='.answer'):
+    dict = {}
+    for sn in set_name:
+        data_path = pjoin(data_dir, sn + suffix)
+        assert os.path.exists(data_path), 'the path {} does not exist, please check again.'.format(data_path)
+        print('Reading answer from file: {}{}'.format(sn, suffix))
+        with open(data_path, 'r') as fdata:
+            raw_answer = [line.strip() for line in fdata.readlines()]
+        name = 'raw_' + sn +'_answer'
+        dict[name] = raw_answer
+
+    return dict
+
 def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'question']):
     dict = {}
     for sn in set_names:
@@ -78,8 +91,8 @@ def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'que
                 raw_data = [map(int, line.strip().split(' ')) for line in fdata.readlines()]
             print('The raw data length is {}'.format(len(raw_data)))
             name = sn + '_' + suf
-            # masked_data = [mask_input(rd, max_len) for rd in raw_data]
-            dict[name] = raw_data
+            masked_data = [mask_input(rd, max_len) for rd in raw_data]
+            dict[name] = masked_data
 
     return dict
 
@@ -98,7 +111,7 @@ if __name__ == '__main__':
     # test1
     # data = mask_dataset(data_path)
     # for k,v in data.items():
-    #     print('Length of {} is: {}'.format(k, len(v)))
+    #     print('top 10 of {} are: {}'.format(k, v[:10]))
 
     # test2
     # data = mask_dataset(data_path, ['test'], ['test'])
@@ -114,7 +127,13 @@ if __name__ == '__main__':
     # mask_input_test(suffixes)
 
     # read answer test
-    dict_an = read_answers(data_path)
+    # dict_an = read_answers(data_path)
+    # for k, v in dict_an.items():
+    #     print('set name : {} with top 10 values: {}'.format(k, v[:10]))
+
+    # read raw answer test
+    dict_an = read_raw_answers(data_path)
     for k, v in dict_an.items():
         print('set name : {} with top 10 values: {}'.format(k, v[:10]))
+
 

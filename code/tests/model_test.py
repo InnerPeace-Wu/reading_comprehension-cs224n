@@ -11,7 +11,7 @@ import tensorflow.contrib.rnn as rnn
 from matchLSTM_cell_test import matchLSTMcell
 
 root_dir = cfg.ROOT_DIR
-data_dir = cfg.DATA_DIR
+data_dir = pjoin(root_dir, 'data', 'squad')
 test_file_path = pjoin(root_dir, 'cache', 'test.test_masked.npy')
 context_max_len = cfg.context_max_len
 question_max_len = cfg.question_max_len
@@ -42,11 +42,13 @@ def model(context=None, question=None, embedding=None, answer=None):
 
         # num_example = tf.shape(context)[0]
         num_example = 2
+        embedding = tf.Variable(embedding, dtype=tf.float32, trainable=False)
 
         context_embed = tf.nn.embedding_lookup(embedding, context)
         print('shape of context embed {}'.format(context_embed.shape))
         question_embed = tf.nn.embedding_lookup(embedding, question)
         print('shape of question embed {}'.format(question_embed.shape))
+        print(context_embed)
 
         num_hidden = cfg.lstm_num_hidden
         con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
@@ -54,7 +56,7 @@ def model(context=None, question=None, embedding=None, answer=None):
         con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(con_lstm_fw_cell,con_lstm_bw_cell,
                                                             context_embed,
                                                             sequence_length=sequence_length(context_m),
-                                                            dtype=tf.float64, scope='con_lstm')
+                                                            dtype=tf.float32, scope='con_lstm')
         H_context = tf.concat(con_outputs, 2)
         print('shape of H_context is {}'.format(H_context.shape))
         assert (num_example, context_max_len, 2 * num_hidden) == H_context.shape, \

@@ -10,8 +10,12 @@ class Config:
     # absolute path of the root directory.
     ROOT_DIR = os.path.abspath('../..')
     # data directory
-    DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
+    DATA_DIR = pjoin(os.path.abspath('..'), 'data', 'squad')
     # number of hidden units for lstm
     lstm_num_hidden = 32
     # embedding size
     embed_size = 100
+    # batch_size = 32
+    batch_size = 32
+    # training epochs
+    epochs = 10
