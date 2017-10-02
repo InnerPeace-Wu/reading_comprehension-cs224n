@@ -3,6 +3,8 @@ data/
 download/
 cache/
 code/train/
+code/log/
+*.pdf
 # pycharm
 .idea
 # Byte-compiled / optimized / DLL files

@@ -14,6 +14,7 @@ from utils.matchLSTM_cell import matchLSTMcell
 import tensorflow.contrib.rnn as rnn
 from utils.Config import Config as cfg
 import os
+import sys
 from os.path import join as pjoin
 import matplotlib.pyplot as plt
 import random
@@ -162,6 +163,7 @@ class QASystem(object):
         :param args: pass in more arguments as needed
         """
 
+        self.max_grad_norm = cfg.max_grad_norm
         self.encoder = encoder
         self.decoder = decoder
         # ==== set up placeholder tokens ========
@@ -181,16 +183,23 @@ class QASystem(object):
 
         # ==== set up training/updating procedure ====
         self.global_step = tf.Variable(0, trainable=False)
-        starter_learning_rate = 1e-3
+        starter_learning_rate = 1.
         learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
                                                    1000, 0.96, staircase=True)
-        self.optimizer = tf.train.AdamOptimizer(learning_rate)
-        self.train_op = self.optimizer.minimize(self.final_loss)
+        #self.optimizer = tf.train.AdamOptimizer(learning_rate)
+        self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
+        # self.train_op = self.optimizer.minimize(self.final_loss)
 
         #TODO: consider graidents clipping.
         gradients = self.optimizer.compute_gradients(self.final_loss)
+        #capped_gvs = [(tf.clip_by_value(grad, -1., 1.), var) for grad, var in gradients]
+        #grad = [x[0] for x in capped_gvs]
         grad = [x[0] for x in gradients]
+        var = [x[1] for x in gradients]
         self.grad_norm = tf.global_norm(grad)
+        grad, self.grad_norm = tf.clip_by_global_norm(grad, 5.0)
+        self.train_op = self.optimizer.apply_gradients(zip(grad, var))
+        #self.train_op = self.optimizer.apply_gradients(capped_gvs)
 
         self.saver = tf.train.Saver()
 
@@ -457,7 +466,7 @@ class QASystem(object):
         train_question = dataset['train_question']
         train_answer = answers['train_answer']
 
-        print_every = 50
+        print_every = 20
 
         if debug_num:
             assert isinstance(debug_num, int),'the debug number should be a integer'
@@ -465,7 +474,7 @@ class QASystem(object):
             train_answer = train_answer[:debug_num]
             train_context = train_context[:debug_num]
             train_question = train_question[:debug_num]
-            print_every = 1
+            print_every = 10
 
         num_example = len(train_answer)
         self.epochs = cfg.epochs
@@ -484,6 +493,8 @@ class QASystem(object):
             logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
             ep_loss = 0.
             for it in xrange(batch_num):
+                sys.stdout.write('> %d%%/%d%% \r'%(iters%print_every, print_every))
+                sys.stdout.flush()
                 context = train_context[it * batch_size: (it + 1)*batch_size]
                 question = train_question[it * batch_size: (it + 1)*batch_size]
                 answer = train_answer[it * batch_size: (it + 1)*batch_size]

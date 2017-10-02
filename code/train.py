@@ -118,8 +118,9 @@ def main(_):
     print(vars(FLAGS))
     with open(os.path.join(FLAGS.log_dir, "flags.json"), 'w') as fout:
         json.dump(FLAGS.__flags, fout)
-
-    with tf.Session() as sess:
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
         init = tf.global_variables_initializer()
         sess.run(init)
         load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
@@ -129,10 +130,10 @@ def main(_):
         # saver = tf.train.Saver()
         # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
         qa.train(sess, dataset,answers,save_train_dir, raw_answers=raw_answers,
-                 rev_vocab=rev_vocab, debug_num=100)
+                 rev_vocab=rev_vocab)
 
         qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-             training=True, log=True)
+             log=True)
 
 
 if __name__ == "__main__":
