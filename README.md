@@ -4,7 +4,11 @@
 
 - [x] Plot histgrams of context, question, answer lengthes.
 - [x] preprocess the inputs with mask.
-- [ ] make decision how to represent the answer.
+- [x] make decision how to represent the answer.
+- [ ] figure out the overall architecture.
+- [ ] add tensorboard to monitor.
+- [ ] overfit a minibatch.
+
 
 
 # Programming Assignment 4
