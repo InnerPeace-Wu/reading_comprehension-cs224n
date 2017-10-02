@@ -4,7 +4,7 @@ download/
 cache/
 code/train/
 code/log/
-*.pdf
+*.pdf 
 # pycharm
 .idea
 # Byte-compiled / optimized / DLL files
