@@ -18,10 +18,10 @@ class Config:
     # batch_size = 32
     batch_size = 64
     # training epochs
-    epochs = 20
+    epochs = 1
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
-    start_lr = 1e-3
+    start_lr = 1e0
     # gradients clip value
     clip_by_val = 10.

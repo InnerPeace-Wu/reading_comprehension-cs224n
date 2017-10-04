@@ -15,7 +15,7 @@ from utils.mask_inputs import mask_dataset
 from utils.mask_inputs import read_answers, read_raw_answers
 from utils.Config import Config as cfg
 
-lr = cfg.start_lr
+# lr = cfg.start_lr
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -120,10 +120,13 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    for i in xrange(1):
+    default = True
+    for i in xrange(30):
         tf.reset_default_graph()
-
-        # lr = 10**np.random.uniform(-7, 2)
+        if default:
+            lr = 1e-3 + 2e-4
+        else:
+            lr = 10**np.random.uniform(-4, 1)
         print('=========== lr={} ==========='.format(lr))
         encoder = Encoder()
         decoder = Decoder()
@@ -133,13 +136,13 @@ def main(_):
             init = tf.global_variables_initializer()
             sess.run(init)
             load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
-            initialize_model(sess, qa, load_train_dir)
+            # initialize_model(sess, qa, load_train_dir)
 
             save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
             # saver = tf.train.Saver()
             # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
             qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
-                     debug_num=100,
+                     # debug_num=100,
                      rev_vocab=rev_vocab)
 
             qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,

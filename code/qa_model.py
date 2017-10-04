@@ -14,6 +14,7 @@ from utils.matchLSTM_cell import matchLSTMcell
 import tensorflow.contrib.rnn as rnn
 from utils.Config import Config as cfg
 from utils.adamax import AdamaxOptimizer
+from utils.identity_initializer import identity_initializer
 import os
 import sys
 from os.path import join as pjoin
@@ -87,8 +88,8 @@ class Encoder(object):
         #                                                     context_embed,
         #                                                     sequence_length=sequence_length(context_m),
         #                                                     dtype=dtype, scope='con_lstm')
-        con_lstm_fw_cell = rnn.GRUCell(num_hidden)
-        con_lstm_bw_cell = rnn.GRUCell(num_hidden)
+        con_lstm_fw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
+        con_lstm_bw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
 
         con_o = []
         # print(con_lstm_fw_cell.state_size)
@@ -98,13 +99,13 @@ class Encoder(object):
             for i in xrange(context_max_len // 50):
                 i_context = tf.slice(context_embed, [0,i*50,0],[-1, 50, embed_dim])
                 i_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
-                i_outputs, i_state = tf.nn.dynamic_rnn(con_lstm_fw_cell,
+                i_outputs, con_fw_init_state= tf.nn.dynamic_rnn(con_lstm_fw_cell,
                                                         i_context,
                                                         sequence_length=sequence_length(i_context_m),
                                                         # initial_state=tf.nn.rnn_cell.LSTMStateTuple(con_init_hid, con_init_sta),
                                                         initial_state=con_fw_init_state,
                                                         dtype=tf.float32, scope='con_fw_lstm')
-                tf.stop_gradient(i_state)
+                tf.stop_gradient(con_fw_init_state)
                 scope.reuse_variables()
                 con_o.append(i_outputs)
 
@@ -119,13 +120,13 @@ class Encoder(object):
             for i in xrange(context_max_len // 50):
                 re_i_context = tf.slice(rev_context_embed, [0,i*50,0],[-1, 50, embed_dim])
                 re_i_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
-                re_i_outputs, re_i_state = tf.nn.dynamic_rnn(con_lstm_bw_cell,
+                re_i_outputs, con_bw_init_state= tf.nn.dynamic_rnn(con_lstm_bw_cell,
                                                         re_i_context,
                                                         sequence_length=sequence_length(re_i_context_m),
                                                         initial_state=con_bw_init_state,
                                                         dtype=tf.float32, scope='con_bw_lstm')
                 scope.reuse_variables()
-                tf.stop_gradient(re_i_state)
+                tf.stop_gradient(con_bw_init_state)
                 re_con_o.append(re_i_outputs)
 
         H_context_bw = tf.concat(re_con_o, 1)
@@ -168,13 +169,13 @@ class Encoder(object):
             for i in xrange(context_max_len // 50):
                 iH_context = tf.slice(H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
                 iH_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
-                iH_outputs, iH_state = tf.nn.dynamic_rnn(matchlstm_fw_cell,
+                iH_outputs, Hr_fw_init_state = tf.nn.dynamic_rnn(matchlstm_fw_cell,
                                                         iH_context,
                                                         sequence_length=sequence_length(iH_context_m),
                                                         initial_state=Hr_fw_init_state,
                                                         dtype=tf.float32)
                 scope.reuse_variables()
-                tf.stop_gradient(iH_state)
+                tf.stop_gradient(Hr_fw_init_state)
                 Hr_fw_os.append(iH_outputs)
 
         H_r_fw = tf.concat(Hr_fw_os, axis=1)
@@ -186,13 +187,13 @@ class Encoder(object):
             for i in xrange(context_max_len // 50):
                 bw_iH_context = tf.slice(rev_H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
                 bw_iH_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
-                bw_iH_outputs, bw_iH_state = tf.nn.dynamic_rnn(matchlstm_bw_cell,
+                bw_iH_outputs, Hr_bw_init_state= tf.nn.dynamic_rnn(matchlstm_bw_cell,
                                                         bw_iH_context,
                                                         sequence_length=sequence_length(bw_iH_context_m),
                                                         initial_state=Hr_bw_init_state,
                                                         dtype=tf.float32)
                 scope.reuse_variables()
-                tf.stop_gradient(bw_iH_state)
+                tf.stop_gradient(Hr_bw_init_state)
                 Hr_bw_os.append(bw_iH_outputs)
 
         H_r_bw = tf.concat(Hr_bw_os, axis=1)
@@ -229,13 +230,16 @@ class Decoder(object):
         dtype = tf.float32
 
         # xavier_initializer = tf.contrib.layers.xavier_initializer()
-        initializer = tf.uniform_unit_scaling_initializer(1.0)
+        # initializer = tf.uniform_unit_scaling_initializer(1.0)
         Wr = tf.get_variable('Wr', [context_max_len * 4 * num_hidden, 2 * num_hidden], dtype,
-                             initializer)
+                             # initializer
+                             )
         Wh = tf.get_variable('Wh', [4 * num_hidden, 2 * num_hidden], dtype,
-                             initializer)
+                             # initializer
+                             )
         Wf = tf.get_variable('Wf', [2 * num_hidden, context_max_len], dtype,
-                             initializer)
+                             # initializer
+                             )
         br = tf.get_variable('br', [2 * num_hidden], dtype,
                              tf.zeros_initializer())
         bf = tf.get_variable('bf', [context_max_len, ], dtype,
@@ -247,6 +251,9 @@ class Decoder(object):
         with tf.name_scope('starter_score'):
             s_score = tf.matmul(f, Wf) + bf
             variable_summaries(s_score)
+        with tf.name_scope('starter_prob'):
+            s_prob = tf.nn.softmax(s_score)
+            variable_summaries(s_prob)
         print('shape of s_score is {}'.format(tf.shape(s_score)))
         Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
         #[batch_size x shape_Hr[-1]
@@ -257,6 +264,9 @@ class Decoder(object):
         with tf.name_scope('end_score'):
             e_score = tf.matmul(e_f, Wf) + bf
             variable_summaries(e_score)
+        with tf.name_scope('end_prob'):
+            e_prob = tf.nn.softmax(e_score)
+            variable_summaries(e_prob)
         print('shape of e_score is {}'.format(tf.shape(e_score)))
 
         return s_score, e_score
@@ -286,7 +296,10 @@ class QASystem(object):
         self.batch_size = tf.placeholder(tf.int32,[], name='batch_size')
 
         # ==== assemble pieces ====
-        with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
+        with tf.variable_scope("qa",
+                               initializer=tf.uniform_unit_scaling_initializer(1.0)
+                               # initializer=identity_initializer
+                               ):
             self.setup_embeddings()
             self.setup_system()
             self.setup_loss()
@@ -299,7 +312,7 @@ class QASystem(object):
         #starter_learning_rate = start_lr
         self.starter_learning_rate =  tf.placeholder(tf.float32, name='lr')
         learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-                                                   1000, 0.96, staircase=True)
+                                                   500, 0.96, staircase=True)
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
         # self.optimizer = AdamaxOptimizer(learning_rate)
         # self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
@@ -307,24 +320,24 @@ class QASystem(object):
 
         #TODO: consider graidents clipping.
         gradients = self.optimizer.compute_gradients(self.final_loss)
-        capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
-        with tf.name_scope('gradients'):
-            grad = [x[0] for x in capped_gvs]
+        # capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
+        # with tf.name_scope('gradients'):
+        #     grad = [x[0] for x in capped_gvs]
             # variable_summaries(grad)
-        # grad = [x[0] for x in gradients]
-        # var = [x[1] for x in gradients]
+        grad = [x[0] for x in gradients]
+        var = [x[1] for x in gradients]
         # with tf.name_scope('grad_norm'):
         self.grad_norm = tf.global_norm(grad)
         tf.summary.scalar('grad_norm', self.grad_norm)
-        # grad, self.grad_norm = tf.clip_by_global_norm(grad, 5.0)
-        # self.train_op = self.optimizer.apply_gradients(zip(grad, var))
-        self.train_op = self.optimizer.apply_gradients(capped_gvs)
+        grad, self.grad_norm = tf.clip_by_global_norm(grad, self.max_grad_norm)
+        self.train_op = self.optimizer.apply_gradients(zip(grad, var))
+        # self.train_op = self.optimizer.apply_gradients(capped_gvs)
 
         self.saver = tf.train.Saver()
 
         self.merged = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter('summary/train',
-                                                  session.graph)
+        # self.train_writer = tf.summary.FileWriter('summary/afterbuglr10',
+        #                                           session.graph)
 
     def setup_system(self):
         """
@@ -336,6 +349,8 @@ class QASystem(object):
         H_r = self.encoder.encode(self.batch_size, self.context, self.context_m, self.question,
                                   self.question_m, self.embedding)
         self.s_score, self.e_score = self.decoder.decode(H_r)
+        self.s_prob = tf.reduce_min(tf.nn.softmax(self.s_score),axis=1)
+        self.e_prob = tf.reduce_min(tf.nn.softmax(self.e_score),axis=1)
 
 
     def setup_loss(self):
@@ -394,7 +409,8 @@ class QASystem(object):
                       self.batch_size:self.input_size}
 
         # if self.iters % write_every == 0:
-        output_feed = [self.merged,self.train_op, self.final_loss, self.grad_norm]
+        output_feed = [self.merged,self.train_op, self.final_loss, self.grad_norm,
+                       self.s_prob, self.e_prob]
         # else:
         #     output_feed = [self.train_op, self.final_loss, self.grad_norm]
 
@@ -513,7 +529,7 @@ class QASystem(object):
             # starter = random.randint(0, 4000)
             # ti = random.randint(1, 20)
             starter=100
-            ti=1
+            ti=10
             sample = 100
         else:
             starter = 0
@@ -601,21 +617,22 @@ class QASystem(object):
         toc = time.time()
         logging.info("Number of params: %d (retreival took %f secs)" % (num_params, toc - tic))
 
-        train_context = dataset['train_context']
-        train_question = dataset['train_question']
-        train_answer = answers['train_answer']
+        train_context = np.array(dataset['train_context'])
+        train_question = np.array(dataset['train_question'])
+        train_answer = np.array(answers['train_answer'])
 
-        print_every = 5
+        print_every = 20
 
         if debug_num:
             assert isinstance(debug_num, int),'the debug number should be a integer'
             assert debug_num < len(train_answer), 'check debug number!'
-            train_answer = train_answer[500:debug_num*15]
-            train_context = train_context[500:debug_num*15]
-            train_question = train_question[500:debug_num*16]
+            train_answer = train_answer[0:debug_num*10]
+            train_context = train_context[0:debug_num*10]
+            train_question = train_question[0:debug_num*10]
             print_every = 5
 
         num_example = len(train_answer)
+        shuffle_list = np.arange(num_example)
         self.epochs = cfg.epochs
         self.losses = []
         self.norms = []
@@ -636,25 +653,40 @@ class QASystem(object):
         #     self.train_eval = []
         #     self.val_eval = []
             # TODO: add random shuffle.
-            logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
+            # logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
             #lr = 10**np.random.uniform(-7, 3)
+            self.train_writer = tf.summary.FileWriter('summary/lr'+str(lr),
+                                                  session.graph)
+
+            np.random.shuffle(shuffle_list)
+            train_context = train_context[shuffle_list]
+            train_question = train_question[shuffle_list]
+            train_answer = train_answer[shuffle_list]
             ep_loss = 0.
             for it in xrange(batch_num):
-                # if iters > 500:
+                # if self.iters > 1000:
                 #     break
                 sys.stdout.write('> %d%%/%d%% \r'%(self.iters%print_every, print_every))
                 sys.stdout.flush()
                 context = train_context[it * batch_size: (it + 1)*batch_size]
                 question = train_question[it * batch_size: (it + 1)*batch_size]
                 answer = train_answer[it * batch_size: (it + 1)*batch_size]
+                # if self.iters == 0:
+                #     print(context[:2].shape)
+                #     print(question[:2].shape)
+                #     print(answer[:2].shape)
 
                 outputs = self.optimize(session, context,
                                                    question,answer,lr)
                 self.train_writer.add_summary(outputs[0], self.iters)
                 if len(outputs) > 3:
-                    loss, grad_norm = outputs[2:]
+                    loss, grad_norm = outputs[2:4]
                 else:
-                    loss, grad_norm = outputs[1:]
+                    loss, grad_norm = outputs[1:3]
+
+                # logging.info(' ====== iters: {} ==========='.format(self.iters))
+                # logging.info('s_prob: {}'.format(outputs[-2]))
+                # logging.info('e_prob: {}'.format(outputs[-1]))
                 ep_loss += loss
                 self.losses.append(loss)
                 self.norms.append(grad_norm)
@@ -670,52 +702,52 @@ class QASystem(object):
                     self.val_eval.append((f1, em))
                     tic = time.time()
 
-            logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
-            save_path = pjoin(train_dir, 'weights')
-            self.saver.save(session, save_path, global_step = self.iters )
+            # logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
+            # save_path = pjoin(train_dir, 'weights')
+            # self.saver.save(session, save_path, global_step = self.iters )
 
-        data_dict = {'losses':self.losses, 'norms':self.norms,
-                     'train_eval':self.train_eval, 'val_eval':self.val_eval}
-        c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
-        data_save_path = pjoin(os.path.abspath('..'), 'cache', 'data'+c_time+'.npy')
-        np.save(data_save_path, data_dict)
+            data_dict = {'losses':self.losses, 'norms':self.norms,
+                         'train_eval':self.train_eval, 'val_eval':self.val_eval}
+            c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
+            data_save_path = pjoin(os.path.abspath('..'), 'cache', 'data'+c_time+'.npy')
+            np.save(data_save_path, data_dict)
 
-        fig, _ = plt.subplots(nrows=2, ncols=1)
-        plt.subplot(2,1,1)
-        plt.plot(self.losses, '-o')
-        plt.xlabel('iterations')
-        plt.ylabel('loss')
+            fig, _ = plt.subplots(nrows=2, ncols=1)
+            plt.subplot(2,1,1)
+            plt.plot(self.losses, )
+            plt.xlabel('iterations')
+            plt.ylabel('loss')
 
-        plt.subplot(2,1,2)
-        plt.plot(self.norms, '-o')
-        plt.xlabel('iterations')
-        plt.ylabel('gradients norms')
-        plt.title('lr={}'.format(lr))
-        fig.tight_layout()
+            plt.subplot(2,1,2)
+            plt.plot(self.norms, )
+            plt.xlabel('iterations')
+            plt.ylabel('gradients norms')
+            plt.title('lr={}'.format(lr))
+            fig.tight_layout()
 
-        output_fig = 'lr-'+str(lr)+'loss-norms'+c_time+'.pdf'
-        plt.savefig('figs/'+output_fig, format='pdf')
+            output_fig = 'lr-'+str(lr)+'loss-norms'+c_time+'.pdf'
+            plt.savefig('figs/'+output_fig, format='pdf')
 
-        # plt.figure()
-        fig, _ = plt.subplots(nrows=2, ncols=1)
-        plt.subplot(2,1,1)
-        plt.plot([x[0] for x in self.train_eval], '-o')
-        plt.plot([x[0] for x in self.val_eval], '-x')
-        plt.legend(['train', 'val'], loc='upper left')
-        plt.xlabel('iterations')
-        plt.ylabel('f1 score')
+            # plt.figure()
+            fig, _ = plt.subplots(nrows=2, ncols=1)
+            plt.subplot(2,1,1)
+            plt.plot([x[0] for x in self.train_eval])
+            plt.plot([x[0] for x in self.val_eval])
+            plt.legend(['train', 'val'], loc='upper left')
+            plt.xlabel('iterations')
+            plt.ylabel('f1 score')
 
-        plt.subplot(2,1,2)
-        plt.plot([x[1] for x in self.train_eval], '-o')
-        plt.plot([x[1] for x in self.val_eval], '-x')
-        plt.legend(['train', 'val'], loc='upper left')
-        plt.xlabel('iterations')
-        plt.ylabel('em score')
-        plt.title('lr={}'.format(lr))
-        fig.tight_layout()
+            plt.subplot(2,1,2)
+            plt.plot([x[1] for x in self.train_eval])
+            plt.plot([x[1] for x in self.val_eval])
+            plt.legend(['train', 'val'], loc='upper left')
+            plt.xlabel('iterations')
+            plt.ylabel('em score')
+            plt.title('lr={}'.format(lr))
+            fig.tight_layout()
 
-        eval_out ='lr-'+str(lr)+ 'f1-em'+c_time+'.pdf'
-        plt.savefig('figs/'+eval_out, format='pdf')
+            eval_out ='lr-'+str(lr)+ 'f1-em'+c_time+'.pdf'
+            plt.savefig('figs/'+eval_out, format='pdf')
 
         #plt.show()
 
