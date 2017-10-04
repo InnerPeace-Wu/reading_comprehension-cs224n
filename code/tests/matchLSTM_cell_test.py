@@ -58,7 +58,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             print('shape of matchlstm state is {}'.format(state.shape))
 
             # TODO: figure out the right way to initialize rnn weights.
-            dtype = tf.float64
+            dtype = tf.float32
             initializer = tf.contrib.layers.xavier_initializer()
             W_q = tf.get_variable('W_q', [question_max_len * self.input_size, self.input_size], dtype,
                                   initializer)

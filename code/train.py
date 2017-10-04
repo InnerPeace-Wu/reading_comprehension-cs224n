@@ -9,11 +9,13 @@ import tensorflow as tf
 
 from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
+import numpy as np
 
 from utils.mask_inputs import mask_dataset
 from utils.mask_inputs import read_answers, read_raw_answers
 from utils.Config import Config as cfg
 
+lr = cfg.start_lr
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -105,14 +107,12 @@ def main(_):
 
     # encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
     # decoder = Decoder(output_size=FLAGS.output_size)
-    encoder = Encoder()
-    decoder = Decoder()
 
-    qa = QASystem(encoder, decoder)
-
+    import time
+    c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
     if not os.path.exists(FLAGS.log_dir):
         os.makedirs(FLAGS.log_dir)
-    file_handler = logging.FileHandler(pjoin(FLAGS.log_dir, "log.txt"))
+    file_handler = logging.FileHandler(pjoin(FLAGS.log_dir, 'log'+c_time+'.txt'))
     logging.getLogger().addHandler(file_handler)
 
     print(vars(FLAGS))
@@ -120,20 +120,31 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    with tf.Session(config=config) as sess:
-        init = tf.global_variables_initializer()
-        sess.run(init)
-        load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
-        initialize_model(sess, qa, load_train_dir)
+    for i in xrange(1):
+        tf.reset_default_graph()
 
-        save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
-        # saver = tf.train.Saver()
-        # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
-        qa.train(sess, dataset,answers,save_train_dir, raw_answers=raw_answers,
-                 rev_vocab=rev_vocab)
+        # lr = 10**np.random.uniform(-7, 2)
+        print('=========== lr={} ==========='.format(lr))
+        encoder = Encoder()
+        decoder = Decoder()
 
-        qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-             log=True)
+        with tf.Session(config=config) as sess:
+            qa = QASystem(sess,encoder, decoder)
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
+            initialize_model(sess, qa, load_train_dir)
+
+            save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
+            # saver = tf.train.Saver()
+            # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
+            qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
+                     debug_num=100,
+                     rev_vocab=rev_vocab)
+
+            qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+                 log=True,
+                 training=True)
 
 
 if __name__ == "__main__":

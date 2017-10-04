@@ -35,8 +35,8 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
         with tf.variable_scope(scope):
             num_example = tf.shape(self.h_question)[0]
 
-            print('shape of matchlstm input is {}'.format(inputs.shape))
-            print('shape of matchlstm state is {}'.format(state.shape))
+            # print('shape of matchlstm input is {}'.format(inputs.shape))
+            # print('shape of matchlstm state is {}'.format(state.shape))
 
             # TODO: figure out the right way to initialize rnn weights.
             dtype = tf.float32
@@ -63,14 +63,14 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # [batch_size x question_max_len]
             a = tf.nn.softmax(tf.matmul(g, W_a) + b_a)
 
-            print('shape of matchlstm a is {}'.format(a.shape))
+            # print('shape of matchlstm a is {}'.format(a.shape))
 
             a_tile = tf.tile(tf.expand_dims(a, 2), [1, 1, 2 * num_hidden])
             question_attend = tf.reduce_sum(tf.multiply(self.h_question, a_tile), axis=1)
 
             z = tf.concat([inputs, question_attend], axis=1)
 
-            print('shape of matchlstm z is {}'.format(z.shape))
+            # print('shape of matchlstm z is {}'.format(z.shape))
             # assert tf.shape(z) == [None, 4 * num_hidden], 'ERROR: the shape of z is {}'.format(tf.shape(z))
 
             # initializer = tf.contrib.layers.xavier_initializer()

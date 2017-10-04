@@ -35,18 +35,6 @@ batch_size = cfg.batch_size
 start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
 
-def variable_summaries(var):
-  """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
-  with tf.name_scope('summaries'):
-    mean = tf.reduce_mean(var)
-    tf.summary.scalar('mean', mean)
-    with tf.name_scope('stddev'):
-      stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-    tf.summary.scalar('stddev', stddev)
-    tf.summary.scalar('max', tf.reduce_max(var))
-    tf.summary.scalar('min', tf.reduce_min(var))
-    tf.summary.histogram('histogram', var)
-
 def sequence_length(sequence_mask):
     return tf.reduce_sum(tf.cast(sequence_mask, tf.int32), axis=1)
 
@@ -96,8 +84,8 @@ class Encoder(object):
         con_fw_init_state = con_lstm_fw_cell.zero_state(input_size, tf.float32)
         with tf.variable_scope('con_fw') as scope:
             for i in xrange(context_max_len // 50):
-                i_context = tf.slice(context_embed, [0,i*50,0],[-1, 50, embed_dim])
-                i_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
+                i_context = tf.slice(context_embed, [0,i*50,0],[input_size, 50, embed_dim])
+                i_context_m = tf.slice(context_m, [0,i*50],[input_size, 50])
                 i_outputs, i_state = tf.nn.dynamic_rnn(con_lstm_fw_cell,
                                                         i_context,
                                                         sequence_length=sequence_length(i_context_m),
@@ -117,8 +105,8 @@ class Encoder(object):
         con_bw_init_state = con_lstm_bw_cell.zero_state(input_size, tf.float32)
         with tf.variable_scope('con_bw') as scope:
             for i in xrange(context_max_len // 50):
-                re_i_context = tf.slice(rev_context_embed, [0,i*50,0],[-1, 50, embed_dim])
-                re_i_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
+                re_i_context = tf.slice(rev_context_embed, [0,i*50,0],[input_size, 50, embed_dim])
+                re_i_context_m = tf.slice(rev_context_m, [0,i*50],[input_size, 50])
                 re_i_outputs, re_i_state = tf.nn.dynamic_rnn(con_lstm_bw_cell,
                                                         re_i_context,
                                                         sequence_length=sequence_length(re_i_context_m),
@@ -129,10 +117,7 @@ class Encoder(object):
                 re_con_o.append(re_i_outputs)
 
         H_context_bw = tf.concat(re_con_o, 1)
-        with tf.name_scope('H_context'):
-            H_context = tf.concat([H_context_fw, H_context_bw], 2)
-
-            variable_summaries(H_context)
+        H_context = tf.concat([H_context_fw, H_context_bw], 2)
 
         print('shape of H_context is {}'.format(H_context.shape))
         # assert (None, context_max_len, 2 * num_hidden) == H_context.shape, \
@@ -146,10 +131,7 @@ class Encoder(object):
                                                                             question_embed,
                                                                             sequence_length=sequence_length(question_m),
                                                                             dtype=dtype, scope='ques_lstm')
-        with tf.name_scope('H_question'):
-            H_question = tf.concat(ques_outputs, 2)
-
-            variable_summaries(H_question)
+        H_question = tf.concat(ques_outputs, 2)
         # assert (None, question_max_len, 2 * num_hidden) == H_question.shape, \
         #     'the shape of H_context should be {} but it is {}'.format((None, question_max_len, 2 * num_hidden),
         #                                                               H_question.shape)
@@ -166,8 +148,8 @@ class Encoder(object):
         Hr_fw_init_state = matchlstm_fw_cell.zero_state(input_size, tf.float32)
         with tf.variable_scope('Hr_fw') as scope:
             for i in xrange(context_max_len // 50):
-                iH_context = tf.slice(H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
-                iH_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
+                iH_context = tf.slice(H_context, [0,i*50,0],[input_size, 50, 2*num_hidden])
+                iH_context_m = tf.slice(context_m, [0,i*50],[input_size, 50])
                 iH_outputs, iH_state = tf.nn.dynamic_rnn(matchlstm_fw_cell,
                                                         iH_context,
                                                         sequence_length=sequence_length(iH_context_m),
@@ -184,8 +166,8 @@ class Encoder(object):
         Hr_bw_init_state = matchlstm_bw_cell.zero_state(input_size, tf.float32)
         with tf.variable_scope('Hr_bw') as scope:
             for i in xrange(context_max_len // 50):
-                bw_iH_context = tf.slice(rev_H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
-                bw_iH_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
+                bw_iH_context = tf.slice(rev_H_context, [0,i*50,0],[input_size, 50, 2*num_hidden])
+                bw_iH_context_m = tf.slice(rev_context_m, [0,i*50],[input_size, 50])
                 bw_iH_outputs, bw_iH_state = tf.nn.dynamic_rnn(matchlstm_bw_cell,
                                                         bw_iH_context,
                                                         sequence_length=sequence_length(bw_iH_context_m),
@@ -197,9 +179,7 @@ class Encoder(object):
 
         H_r_bw = tf.concat(Hr_bw_os, axis=1)
 
-        with tf.name_scope('H_r'):
-            H_r = tf.concat([H_r_fw, H_r_bw], axis=2)
-            variable_summaries(H_r)
+        H_r = tf.concat([H_r_fw, H_r_bw], axis=2)
         # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
         # H_r = tf.concat(H_r, axis=2)
         print('shape of Hr is {}'.format(H_r.shape))
@@ -244,9 +224,7 @@ class Decoder(object):
 
         f = tf.tanh(tf.matmul(Hr_reshaped, Wr) + br)
         # scores of start token.
-        with tf.name_scope('starter_score'):
-            s_score = tf.matmul(f, Wf) + bf
-            variable_summaries(s_score)
+        s_score = tf.matmul(f, Wf) + bf
         print('shape of s_score is {}'.format(tf.shape(s_score)))
         Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
         #[batch_size x shape_Hr[-1]
@@ -254,15 +232,13 @@ class Decoder(object):
         e_f = tf.tanh(tf.matmul(Hr_reshaped, Wr) +
                       tf.matmul(Hr_attend, Wh) +
                       br)
-        with tf.name_scope('end_score'):
-            e_score = tf.matmul(e_f, Wf) + bf
-            variable_summaries(e_score)
+        e_score = tf.matmul(e_f, Wf) + bf
         print('shape of e_score is {}'.format(tf.shape(e_score)))
 
         return s_score, e_score
 
 class QASystem(object):
-    def __init__(self, session, encoder, decoder, *args):
+    def __init__(self, encoder, decoder, *args):
         """
         Initializes your System
 
@@ -270,7 +246,6 @@ class QASystem(object):
         :param decoder: a decoder that you constructed in train.py
         :param args: pass in more arguments as needed
         """
-        # self.session = session
         self.input_size = batch_size
         self.max_grad_norm = cfg.max_grad_norm
         self.encoder = encoder
@@ -283,16 +258,12 @@ class QASystem(object):
         self.question_m = tf.placeholder(tf.bool, (None, question_max_len))
         self.answer_s = tf.placeholder(tf.int32, (None,))
         self.answer_e = tf.placeholder(tf.int32, (None,))
-        self.batch_size = tf.placeholder(tf.int32,[], name='batch_size')
 
         # ==== assemble pieces ====
         with tf.variable_scope("qa", initializer=tf.uniform_unit_scaling_initializer(1.0)):
             self.setup_embeddings()
             self.setup_system()
             self.setup_loss()
-
-            # for i in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
-            #     logging.info(i.name)
 
         # ==== set up training/updating procedure ====
         self.global_step = tf.Variable(0, trainable=False)
@@ -308,23 +279,15 @@ class QASystem(object):
         #TODO: consider graidents clipping.
         gradients = self.optimizer.compute_gradients(self.final_loss)
         capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
-        with tf.name_scope('gradients'):
-            grad = [x[0] for x in capped_gvs]
-            # variable_summaries(grad)
+        grad = [x[0] for x in capped_gvs]
         # grad = [x[0] for x in gradients]
         # var = [x[1] for x in gradients]
-        # with tf.name_scope('grad_norm'):
         self.grad_norm = tf.global_norm(grad)
-        tf.summary.scalar('grad_norm', self.grad_norm)
         # grad, self.grad_norm = tf.clip_by_global_norm(grad, 5.0)
         # self.train_op = self.optimizer.apply_gradients(zip(grad, var))
         self.train_op = self.optimizer.apply_gradients(capped_gvs)
 
         self.saver = tf.train.Saver()
-
-        self.merged = tf.summary.merge_all()
-        self.train_writer = tf.summary.FileWriter('summary/train',
-                                                  session.graph)
 
     def setup_system(self):
         """
@@ -333,7 +296,7 @@ class QASystem(object):
         to assemble your reading comprehension system!
         :return:
         """
-        H_r = self.encoder.encode(self.batch_size, self.context, self.context_m, self.question,
+        H_r = self.encoder.encode(self.input_size, self.context, self.context_m, self.question,
                                   self.question_m, self.embedding)
         self.s_score, self.e_score = self.decoder.decode(H_r)
 
@@ -352,9 +315,6 @@ class QASystem(object):
         )
 
         self.final_loss = tf.reduce_mean(loss_e + loss_s)
-        tf.summary.scalar('final_loss', self.final_loss)
-
-
 
     def setup_embeddings(self):
         """
@@ -371,7 +331,6 @@ class QASystem(object):
         This method is equivalent to a step() function
         :return:
         """
-        write_every = 10
         # input_feed = {}
         context_data = [x[0] for x in context]
         context_masks = [x[1] for x in context]
@@ -390,17 +349,11 @@ class QASystem(object):
                       self.question_m:question_masks,
                       self.answer_s: answer_start,
                       self.answer_e: answer_end,
-                      self.starter_learning_rate:lr,
-                      self.batch_size:self.input_size}
+                      self.starter_learning_rate:lr}
 
-        # if self.iters % write_every == 0:
-        output_feed = [self.merged,self.train_op, self.final_loss, self.grad_norm]
-        # else:
-        #     output_feed = [self.train_op, self.final_loss, self.grad_norm]
+        output_feed = [self.train_op, self.final_loss, self.grad_norm]
 
         outputs = session.run(output_feed, input_feed)
-        # if len(outputs) > 4:
-        #     self.train_writer.add_summary(outputs[0])
 
         return outputs
 
@@ -448,8 +401,7 @@ class QASystem(object):
         input_feed = {self.context: context_data,
                       self.context_m: context_masks,
                       self.question: question_data,
-                      self.question_m:question_masks,
-                      self.batch_size:100}
+                      self.question_m:question_masks}
 
         output_feed = [self.s_score, self.e_score]
 
@@ -512,9 +464,9 @@ class QASystem(object):
         if training:
             # starter = random.randint(0, 4000)
             # ti = random.randint(1, 20)
-            starter=100
-            ti=1
-            sample = 100
+            starter=0
+            ti=0
+            sample = 32
         else:
             starter = 0
             sample = None
@@ -530,8 +482,7 @@ class QASystem(object):
             prediction = rev_vocab[prediction_ids]
             prediction =  ' '.join(prediction)
             # if i < 30:
-            #     print('prediction: {}'.format( prediction))
-            #     print(' g-truth:   {}'.format( train_answer[i]))
+            #     print('prediction: {}, g-truth: {}'.format( prediction, train_answer[i]))
             #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
             tf1 += f1_score(prediction, train_answer[i])
             tem += exact_match_score(prediction, train_answer[i])
@@ -594,7 +545,6 @@ class QASystem(object):
         # so that you can use your trained model to make predictions, or
         # even continue training
 
-
         tic = time.time()
         params = tf.trainable_variables()
         num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
@@ -610,10 +560,10 @@ class QASystem(object):
         if debug_num:
             assert isinstance(debug_num, int),'the debug number should be a integer'
             assert debug_num < len(train_answer), 'check debug number!'
-            train_answer = train_answer[500:debug_num*15]
-            train_context = train_context[500:debug_num*15]
-            train_question = train_question[500:debug_num*16]
-            print_every = 5
+            train_answer = train_answer[:debug_num]
+            train_context = train_context[:debug_num]
+            train_question = train_question[:debug_num]
+            print_every = 1
 
         num_example = len(train_answer)
         self.epochs = cfg.epochs
@@ -624,45 +574,38 @@ class QASystem(object):
         batch_size = cfg.batch_size
         batch_num = int(num_example/ batch_size)
         total_iterations = self.epochs * batch_num
-        self.iters = 0
+        iters = 0
         tic = time.time()
-        write_every = 10
 
-        for ep in xrange(self.epochs):
-        # for i in xrange(1):
-        #     iters = 0
-        #     self.losses = []
-        #     self.norms = []
-        #     self.train_eval = []
-        #     self.val_eval = []
+        #for ep in xrange(self.epochs):
+        for i in xrange(1):
+            iters = 0
+            self.losses = []
+            self.norms = []
+            self.train_eval = []
+            self.val_eval = []
             # TODO: add random shuffle.
-            logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
+            #logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
             #lr = 10**np.random.uniform(-7, 3)
             ep_loss = 0.
             for it in xrange(batch_num):
-                # if iters > 500:
-                #     break
-                sys.stdout.write('> %d%%/%d%% \r'%(self.iters%print_every, print_every))
+                if iters > 500:
+                    break
+                sys.stdout.write('> %d%%/%d%% \r'%(iters%print_every, print_every))
                 sys.stdout.flush()
                 context = train_context[it * batch_size: (it + 1)*batch_size]
                 question = train_question[it * batch_size: (it + 1)*batch_size]
                 answer = train_answer[it * batch_size: (it + 1)*batch_size]
 
-                outputs = self.optimize(session, context,
-                                                   question,answer,lr)
-                self.train_writer.add_summary(outputs[0], self.iters)
-                if len(outputs) > 3:
-                    loss, grad_norm = outputs[2:]
-                else:
-                    loss, grad_norm = outputs[1:]
+                _, loss, grad_norm = self.optimize(session, context,question,answer,lr)
                 ep_loss += loss
                 self.losses.append(loss)
                 self.norms.append(grad_norm)
-                self.iters += 1
-                if self.iters % print_every == 0:
+                iters += 1
+                if iters % print_every == 0:
                     toc = time.time()
                     logging.info('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
-                        self.iters, total_iterations, loss, grad_norm, toc - tic
+                        iters, total_iterations, loss, grad_norm, toc - tic
                     ))
                     tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers,rev_vocab,
                                                             training=True,log=True)
@@ -670,52 +613,52 @@ class QASystem(object):
                     self.val_eval.append((f1, em))
                     tic = time.time()
 
-            logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
-            save_path = pjoin(train_dir, 'weights')
-            self.saver.save(session, save_path, global_step = self.iters )
+            #logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
+            #save_path = pjoin(train_dir, 'weights')
+            #self.saver.save(session, save_path, global_step = iters )
 
-        data_dict = {'losses':self.losses, 'norms':self.norms,
-                     'train_eval':self.train_eval, 'val_eval':self.val_eval}
-        c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
-        data_save_path = pjoin(os.path.abspath('..'), 'cache', 'data'+c_time+'.npy')
-        np.save(data_save_path, data_dict)
+            data_dict = {'losses':self.losses, 'norms':self.norms,
+                         'train_eval':self.train_eval, 'val_eval':self.val_eval}
+            c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
+            data_save_path = pjoin(os.path.abspath('..'), 'cache', 'data'+c_time+'.npy')
+            np.save(data_save_path, data_dict)
 
-        fig, _ = plt.subplots(nrows=2, ncols=1)
-        plt.subplot(2,1,1)
-        plt.plot(self.losses, '-o')
-        plt.xlabel('iterations')
-        plt.ylabel('loss')
+            fig, _ = plt.subplots(nrows=2, ncols=1)
+            plt.subplot(2,1,1)
+            plt.plot(self.losses, '-o')
+            plt.xlabel('iterations')
+            plt.ylabel('loss')
 
-        plt.subplot(2,1,2)
-        plt.plot(self.norms, '-o')
-        plt.xlabel('iterations')
-        plt.ylabel('gradients norms')
-        plt.title('lr={}'.format(lr))
-        fig.tight_layout()
+            plt.subplot(2,1,2)
+            plt.plot(self.norms, '-o')
+            plt.xlabel('iterations')
+            plt.ylabel('gradients norms')
+            plt.title('lr={}'.format(lr))
+            fig.tight_layout()
 
-        output_fig = 'lr-'+str(lr)+'loss-norms'+c_time+'.pdf'
-        plt.savefig('figs/'+output_fig, format='pdf')
+            output_fig = 'lr-'+str(lr)+'loss-norms'+c_time+'.pdf'
+            plt.savefig('figs/'+output_fig, format='pdf')
 
-        # plt.figure()
-        fig, _ = plt.subplots(nrows=2, ncols=1)
-        plt.subplot(2,1,1)
-        plt.plot([x[0] for x in self.train_eval], '-o')
-        plt.plot([x[0] for x in self.val_eval], '-x')
-        plt.legend(['train', 'val'], loc='upper left')
-        plt.xlabel('iterations')
-        plt.ylabel('f1 score')
+            # plt.figure()
+            fig, _ = plt.subplots(nrows=2, ncols=1)
+            plt.subplot(2,1,1)
+            plt.plot([x[0] for x in self.train_eval], '-o')
+            plt.plot([x[0] for x in self.val_eval], '-x')
+            plt.legend(['train', 'val'], loc='upper left')
+            plt.xlabel('iterations')
+            plt.ylabel('f1 score')
 
-        plt.subplot(2,1,2)
-        plt.plot([x[1] for x in self.train_eval], '-o')
-        plt.plot([x[1] for x in self.val_eval], '-x')
-        plt.legend(['train', 'val'], loc='upper left')
-        plt.xlabel('iterations')
-        plt.ylabel('em score')
-        plt.title('lr={}'.format(lr))
-        fig.tight_layout()
+            plt.subplot(2,1,2)
+            plt.plot([x[1] for x in self.train_eval], '-o')
+            plt.plot([x[1] for x in self.val_eval], '-x')
+            plt.legend(['train', 'val'], loc='upper left')
+            plt.xlabel('iterations')
+            plt.ylabel('em score')
+            plt.title('lr={}'.format(lr))
+            fig.tight_layout()
 
-        eval_out ='lr-'+str(lr)+ 'f1-em'+c_time+'.pdf'
-        plt.savefig('figs/'+eval_out, format='pdf')
+            eval_out ='lr-'+str(lr)+ 'f1-em'+c_time+'.pdf'
+            plt.savefig('figs/'+eval_out, format='pdf')
 
         #plt.show()
 

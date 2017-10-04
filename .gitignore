@@ -4,6 +4,7 @@ download/
 cache/
 code/train/
 code/log/
+code/summary/
 *.pdf 
 # pycharm
 .idea

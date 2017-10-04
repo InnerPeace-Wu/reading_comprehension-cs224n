@@ -45,14 +45,21 @@ def hist_plot(count_list, suffix, set_name='allset'):
 
 def draw_hists():
     l = len(suffixes)
-    fig, _ = plt.subplots(nrows=1, ncols=l)
+    fig, ax = plt.subplots(nrows=1, ncols=l,figsize=(10,5))
     for i in xrange(l):
         count_list = []
         for sn in set_names:
             count_list += read_ids(sn, suffixes[i])
         plt.subplot(1, l, i+1)
         hist_plot(count_list, suffixes[i])
+        if suffixes[i] == 'context': le = 600
+        else: le = 30
+        ax[i].set_xlim(0, 0.25)
+        print(ax[i].get_xlim())
     fig.tight_layout()
+    # manager = plt.get_current_fig_manager()
+    # manager.resize(*manager.window.maxsize())
+    # plt.savefig('temp.png',dpi=100)
     plt.show()
     # to gain resolution by set dpi
     # output_path = 'histgrams-of-dataset.pdf'

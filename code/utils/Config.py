@@ -4,7 +4,7 @@ from os.path import join as pjoin
 
 class Config:
     # maximum length of context
-    context_max_len = 350
+    context_max_len = 300
     # maximum length of question
     question_max_len = 25
     # absolute path of the root directory.
@@ -18,6 +18,10 @@ class Config:
     # batch_size = 32
     batch_size = 64
     # training epochs
-    epochs = 2
+    epochs = 20
     # gradient clipping
     max_grad_norm = 10.0
+    # start learning rate
+    start_lr = 1e-3
+    # gradients clip value
+    clip_by_val = 10.
