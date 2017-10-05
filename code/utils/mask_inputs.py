@@ -8,6 +8,7 @@ cfg = Config.Config()
 ROOT_DIR = cfg.ROOT_DIR
 
 suffixes = ['context', 'question']
+count =0
 
 # for test
 def mask_input_test(suffixes, set_name='train'):
@@ -67,12 +68,17 @@ def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
     return dict
 
 def preprocess_answer(string):
+    global count
     num = map(int, string.strip().split(' '))
-    if min(num) > cfg.context_max_len:
+    if min(num) >= cfg.context_max_len:
         num[0] = np.random.randint(10, cfg.context_max_len - 50)
         num[1] = num[0] + np.random.randint(0, 20)
-    elif max(num) > cfg.context_max_len:
+        count += 1
+    elif max(num) >= cfg.context_max_len:
+        count += 1
         num[1] = cfg.context_max_len - 1
+        if num[1] < num[0]:
+            num[0] = num[1] - 1
 
     return num
 
@@ -140,9 +146,13 @@ if __name__ == '__main__':
     dict_an = read_answers(data_path)
     # for k, v in dict_an.items():
     #     print('set name : {} with top 10 values: {}'.format(k, v[:10]))
-    for i,x in enumerate(dict_an['train_answer'][700:720]):
-        # if max(x) > 300:
-        print(i,x)
+    j = 0
+    for i,x in enumerate(dict_an['train_answer']):
+        if max(x) >= 199:
+            print(i,x)
+            j += 1
+    print (j)
+    print count
 
     # read raw answer test
     # dict_an = read_raw_answers(data_path)

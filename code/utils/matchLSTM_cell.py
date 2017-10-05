@@ -43,8 +43,8 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # TODO: figure out the right way to initialize rnn weights.
             dtype = tf.float32
 
-            initializer = tf.contrib.layers.xavier_initializer()
-            # initializer = tf.uniform_unit_scaling_initializer(1.0)
+            # initializer = tf.contrib.layers.xavier_initializer()
+            initializer = tf.uniform_unit_scaling_initializer(1.0)
 
             W_q = tf.get_variable('W_q', [question_max_len * self.input_size, self.input_size], dtype,
                                   initializer
@@ -89,7 +89,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
                                   initializer
                                   )
             b_f = tf.get_variable('b_f', (self._state_size,), dtype,
-                                  tf.constant_initializer(0.0))
+                                  tf.constant_initializer(1.0))
             W_z = tf.get_variable('W_z', (self.state_size, self._state_size), dtype,
                                   # initializer
                                   identity_initializer()
@@ -98,7 +98,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
                                   initializer
                                   )
             b_z = tf.get_variable('b_z', (self.state_size,), dtype,
-                                  tf.zeros_initializer())
+                                  tf.constant_initializer(1.0))#tf.zeros_initializer())
             W_o = tf.get_variable('W_o', (self.state_size, self._state_size), dtype,
                                   # initializer
                                   identity_initializer

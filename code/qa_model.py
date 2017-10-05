@@ -105,11 +105,14 @@ class Encoder(object):
                                                         # initial_state=tf.nn.rnn_cell.LSTMStateTuple(con_init_hid, con_init_sta),
                                                         initial_state=con_fw_init_state,
                                                         dtype=tf.float32, scope='con_fw_lstm')
-                tf.stop_gradient(con_fw_init_state)
+                con_fw_init_state = tf.stop_gradient(con_fw_init_state)
                 scope.reuse_variables()
                 con_o.append(i_outputs)
 
+        logging.info("length of context fw output is : {}".format(len(con_o)))
         H_context_fw = tf.concat(con_o, 1)
+
+        logging.info('shape of H_context_fw is :{}'.format(tf.shape(H_context_fw)))
 
         rev_context_embed = tf.reverse(context_embed,axis=[1])
         rev_context_m = tf.reverse(context_m, axis=[1])
@@ -126,16 +129,17 @@ class Encoder(object):
                                                         initial_state=con_bw_init_state,
                                                         dtype=tf.float32, scope='con_bw_lstm')
                 scope.reuse_variables()
-                tf.stop_gradient(con_bw_init_state)
+                con_bw_init_state = tf.stop_gradient(con_bw_init_state)
                 re_con_o.append(re_i_outputs)
 
+        logging.info("length of context bw output is : {}".format(len(re_con_o)))
         H_context_bw = tf.concat(re_con_o, 1)
         with tf.name_scope('H_context'):
-            H_context = tf.concat([H_context_fw, H_context_bw], 2)
+            H_context = tf.concat([H_context_fw, tf.reverse(H_context_bw, axis=[1])], 2)
 
             variable_summaries(H_context)
 
-        print('shape of H_context is {}'.format(H_context.shape))
+        logging.info('shape of H_context is {}'.format(H_context.shape))
         # assert (None, context_max_len, 2 * num_hidden) == H_context.shape, \
         #     'the shape of H_context should be {} but it is {}'.format((None, context_max_len, 2 * num_hidden),
         #                                                               H_context.shape)
@@ -175,7 +179,7 @@ class Encoder(object):
                                                         initial_state=Hr_fw_init_state,
                                                         dtype=tf.float32)
                 scope.reuse_variables()
-                tf.stop_gradient(Hr_fw_init_state)
+                Hr_fw_init_state = tf.stop_gradient(Hr_fw_init_state)
                 Hr_fw_os.append(iH_outputs)
 
         H_r_fw = tf.concat(Hr_fw_os, axis=1)
@@ -193,13 +197,13 @@ class Encoder(object):
                                                         initial_state=Hr_bw_init_state,
                                                         dtype=tf.float32)
                 scope.reuse_variables()
-                tf.stop_gradient(Hr_bw_init_state)
+                Hr_bw_init_state = tf.stop_gradient(Hr_bw_init_state)
                 Hr_bw_os.append(bw_iH_outputs)
 
         H_r_bw = tf.concat(Hr_bw_os, axis=1)
 
         with tf.name_scope('H_r'):
-            H_r = tf.concat([H_r_fw, H_r_bw], axis=2)
+            H_r = tf.concat([H_r_fw, tf.reverse(H_r_bw, axis=[1])], axis=2)
             variable_summaries(H_r)
         # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
         # H_r = tf.concat(H_r, axis=2)
@@ -312,7 +316,8 @@ class QASystem(object):
         #starter_learning_rate = start_lr
         self.starter_learning_rate =  tf.placeholder(tf.float32, name='lr')
         learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-                                                   500, 0.96, staircase=True)
+                                                   1000, 0.96, staircase=True)
+        tf.summary.scalar('learning rate', learning_rate)
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
         # self.optimizer = AdamaxOptimizer(learning_rate)
         # self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
@@ -330,7 +335,7 @@ class QASystem(object):
         self.grad_norm = tf.global_norm(grad)
         tf.summary.scalar('grad_norm', self.grad_norm)
         grad, self.grad_norm = tf.clip_by_global_norm(grad, self.max_grad_norm)
-        self.train_op = self.optimizer.apply_gradients(zip(grad, var))
+        self.train_op = self.optimizer.apply_gradients(zip(grad, var), global_step=self.global_step)
         # self.train_op = self.optimizer.apply_gradients(capped_gvs)
 
         self.saver = tf.train.Saver()
@@ -645,6 +650,9 @@ class QASystem(object):
         tic = time.time()
         write_every = 10
 
+        self.train_writer = tf.summary.FileWriter('summary/testtrain'+str(lr),
+                                                  session.graph)
+
         for ep in xrange(self.epochs):
         # for i in xrange(1):
         #     iters = 0
@@ -655,10 +663,9 @@ class QASystem(object):
             # TODO: add random shuffle.
             # logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
             #lr = 10**np.random.uniform(-7, 3)
-            self.train_writer = tf.summary.FileWriter('summary/lr'+str(lr),
-                                                  session.graph)
 
-            np.random.shuffle(shuffle_list)
+
+            # np.random.shuffle(shuffle_list)
             train_context = train_context[shuffle_list]
             train_question = train_question[shuffle_list]
             train_answer = train_answer[shuffle_list]
@@ -689,6 +696,8 @@ class QASystem(object):
                 # logging.info('e_prob: {}'.format(outputs[-1]))
                 ep_loss += loss
                 self.losses.append(loss)
+                if loss > 50.:
+                    break
                 self.norms.append(grad_norm)
                 self.iters += 1
                 if self.iters % print_every == 0:
@@ -702,9 +711,9 @@ class QASystem(object):
                     self.val_eval.append((f1, em))
                     tic = time.time()
 
-            # logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
-            # save_path = pjoin(train_dir, 'weights')
-            # self.saver.save(session, save_path, global_step = self.iters )
+            logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
+            save_path = pjoin(train_dir, 'weights')
+            self.saver.save(session, save_path, global_step = self.iters )
 
             data_dict = {'losses':self.losses, 'norms':self.norms,
                          'train_eval':self.train_eval, 'val_eval':self.val_eval}

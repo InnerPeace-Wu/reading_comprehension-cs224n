@@ -121,12 +121,13 @@ def main(_):
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
     default = True
-    for i in xrange(30):
+    for i in xrange(1):
         tf.reset_default_graph()
         if default:
-            lr = 1e-3 + 2e-4
+            lr = 2e-3
+            default = False
         else:
-            lr = 10**np.random.uniform(-4, 1)
+            lr = 10**np.random.uniform(-7, 1)
         print('=========== lr={} ==========='.format(lr))
         encoder = Encoder()
         decoder = Decoder()
@@ -136,13 +137,15 @@ def main(_):
             init = tf.global_variables_initializer()
             sess.run(init)
             load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
+            for i in tf.trainable_variables():
+                logging.info(i.name)
             # initialize_model(sess, qa, load_train_dir)
 
             save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
             # saver = tf.train.Saver()
             # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
             qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
-                     # debug_num=100,
+                     debug_num=100,
                      rev_vocab=rev_vocab)
 
             qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,

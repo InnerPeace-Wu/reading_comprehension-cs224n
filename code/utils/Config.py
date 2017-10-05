@@ -16,9 +16,9 @@ class Config:
     # embedding size
     embed_size = 100
     # batch_size = 32
-    batch_size = 64
+    batch_size = 32
     # training epochs
-    epochs = 1
+    epochs = 10
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
