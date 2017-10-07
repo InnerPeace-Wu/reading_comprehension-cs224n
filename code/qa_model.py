@@ -82,60 +82,61 @@ class Encoder(object):
         question_embed = tf.nn.embedding_lookup(embedding, question)
         print('shape of question embed {}'.format(question_embed.shape))
 
-        # con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-        # con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-        # con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(con_lstm_fw_cell,con_lstm_bw_cell,
-        #                                                     context_embed,
-        #                                                     sequence_length=sequence_length(context_m),
-        #                                                     dtype=dtype, scope='con_lstm')
-        con_lstm_fw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
-        con_lstm_bw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
-
-        con_o = []
+        con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(con_lstm_fw_cell,con_lstm_bw_cell,
+                                                            context_embed,
+                                                            sequence_length=sequence_length(context_m),
+                                                            dtype=dtype, scope='con_lstm')
+        # con_lstm_fw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
+        # con_lstm_bw_cell = rnn.GRUCell(num_hidden,kernel_initializer=identity_initializer())
+        #
+        # con_o = []
         # print(con_lstm_fw_cell.state_size)
         # con_init_hid = con_init_sta = tf.zeros([batch_size, num_hidden])
-        con_fw_init_state = con_lstm_fw_cell.zero_state(input_size, tf.float32)
-        with tf.variable_scope('con_fw') as scope:
-            for i in xrange(context_max_len // 50):
-                i_context = tf.slice(context_embed, [0,i*50,0],[-1, 50, embed_dim])
-                i_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
-                i_outputs, con_fw_init_state= tf.nn.dynamic_rnn(con_lstm_fw_cell,
-                                                        i_context,
-                                                        sequence_length=sequence_length(i_context_m),
-                                                        # initial_state=tf.nn.rnn_cell.LSTMStateTuple(con_init_hid, con_init_sta),
-                                                        initial_state=con_fw_init_state,
-                                                        dtype=tf.float32, scope='con_fw_lstm')
-                con_fw_init_state = tf.stop_gradient(con_fw_init_state)
-                scope.reuse_variables()
-                con_o.append(i_outputs)
+        # con_fw_init_state = con_lstm_fw_cell.zero_state(input_size, tf.float32)
+        # with tf.variable_scope('con_fw') as scope:
+        #     for i in xrange(context_max_len // 50):
+        #         i_context = tf.slice(context_embed, [0,i*50,0],[-1, 50, embed_dim])
+        #         i_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
+        #         i_outputs, con_fw_init_state= tf.nn.dynamic_rnn(con_lstm_fw_cell,
+        #                                                 i_context,
+        #                                                 sequence_length=sequence_length(i_context_m),
+        #                                                 initial_state=tf.nn.rnn_cell.LSTMStateTuple(con_init_hid, con_init_sta),
+                                                        # initial_state=con_fw_init_state,
+                                                        # dtype=tf.float32, scope='con_fw_lstm')
+                # con_fw_init_state = tf.stop_gradient(con_fw_init_state)
+                # scope.reuse_variables()
+                # con_o.append(i_outputs)
+        #
+        # logging.info("length of context fw output is : {}".format(len(con_o)))
+        # H_context_fw = tf.concat(con_o, 1)
 
-        logging.info("length of context fw output is : {}".format(len(con_o)))
-        H_context_fw = tf.concat(con_o, 1)
-
-        logging.info('shape of H_context_fw is :{}'.format(tf.shape(H_context_fw)))
-
-        rev_context_embed = tf.reverse(context_embed,axis=[1])
-        rev_context_m = tf.reverse(context_m, axis=[1])
-        re_con_o = []
+        # logging.info('shape of H_context_fw is :{}'.format(tf.shape(H_context_fw)))
+        #
+        # rev_context_embed = tf.reverse(context_embed,axis=[1])
+        # rev_context_m = tf.reverse(context_m, axis=[1])
+        # re_con_o = []
         # re_con_init_hid = re_con_init_sta = tf.zeros([input_size, num_hidden])
-        con_bw_init_state = con_lstm_bw_cell.zero_state(input_size, tf.float32)
-        with tf.variable_scope('con_bw') as scope:
-            for i in xrange(context_max_len // 50):
-                re_i_context = tf.slice(rev_context_embed, [0,i*50,0],[-1, 50, embed_dim])
-                re_i_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
-                re_i_outputs, con_bw_init_state= tf.nn.dynamic_rnn(con_lstm_bw_cell,
-                                                        re_i_context,
-                                                        sequence_length=sequence_length(re_i_context_m),
-                                                        initial_state=con_bw_init_state,
-                                                        dtype=tf.float32, scope='con_bw_lstm')
-                scope.reuse_variables()
-                con_bw_init_state = tf.stop_gradient(con_bw_init_state)
-                re_con_o.append(re_i_outputs)
-
-        logging.info("length of context bw output is : {}".format(len(re_con_o)))
-        H_context_bw = tf.concat(re_con_o, 1)
+        # con_bw_init_state = con_lstm_bw_cell.zero_state(input_size, tf.float32)
+        # with tf.variable_scope('con_bw') as scope:
+        #     for i in xrange(context_max_len // 50):
+        #         re_i_context = tf.slice(rev_context_embed, [0,i*50,0],[-1, 50, embed_dim])
+        #         re_i_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
+        #         re_i_outputs, con_bw_init_state= tf.nn.dynamic_rnn(con_lstm_bw_cell,
+        #                                                 re_i_context,
+        #                                                 sequence_length=sequence_length(re_i_context_m),
+        #                                                 initial_state=con_bw_init_state,
+        #                                                 dtype=tf.float32, scope='con_bw_lstm')
+        #         scope.reuse_variables()
+        #         con_bw_init_state = tf.stop_gradient(con_bw_init_state)
+        #         re_con_o.append(re_i_outputs)
+        #
+        # logging.info("length of context bw output is : {}".format(len(re_con_o)))
+        # H_context_bw = tf.concat(re_con_o, 1)
         with tf.name_scope('H_context'):
-            H_context = tf.concat([H_context_fw, tf.reverse(H_context_bw, axis=[1])], 2)
+            # H_context = tf.concat([H_context_fw, tf.reverse(H_context_bw, axis=[1])], 2)
+            H_context = tf.concat(con_outputs, axis=2)
 
             variable_summaries(H_context)
 
@@ -145,7 +146,9 @@ class Encoder(object):
         #                                                               H_context.shape)
 
         ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        # ques_lstm_fw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
         ques_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+        # ques_lstm_bw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
         ques_outputs, ques_outputs_states = tf.nn.bidirectional_dynamic_rnn(ques_lstm_fw_cell,
                                                                             ques_lstm_bw_cell,
                                                                             question_embed,
@@ -162,48 +165,49 @@ class Encoder(object):
 
         matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
         matchlstm_bw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
-        # H_r, _ = tf.nn.bidirectional_dynamic_rnn(matchlstm_fw_cell, matchlstm_bw_cell,
-        #                                          H_context,
-        #                                          sequence_length=sequence_length(context_m),
-        #                                          dtype=dtype)
+        H_r, _ = tf.nn.bidirectional_dynamic_rnn(matchlstm_fw_cell, matchlstm_bw_cell,
+                                                 H_context,
+                                                 sequence_length=sequence_length(context_m),
+                                                 dtype=dtype)
 
-        Hr_fw_os = []
-        Hr_fw_init_state = matchlstm_fw_cell.zero_state(input_size, tf.float32)
-        with tf.variable_scope('Hr_fw') as scope:
-            for i in xrange(context_max_len // 50):
-                iH_context = tf.slice(H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
-                iH_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
-                iH_outputs, Hr_fw_init_state = tf.nn.dynamic_rnn(matchlstm_fw_cell,
-                                                        iH_context,
-                                                        sequence_length=sequence_length(iH_context_m),
-                                                        initial_state=Hr_fw_init_state,
-                                                        dtype=tf.float32)
-                scope.reuse_variables()
-                Hr_fw_init_state = tf.stop_gradient(Hr_fw_init_state)
-                Hr_fw_os.append(iH_outputs)
-
-        H_r_fw = tf.concat(Hr_fw_os, axis=1)
-        rev_H_context = tf.reverse(H_context,axis=[1])
-        rev_context_m = tf.reverse(context_m, axis=[1])
-        Hr_bw_os = []
-        Hr_bw_init_state = matchlstm_bw_cell.zero_state(input_size, tf.float32)
-        with tf.variable_scope('Hr_bw') as scope:
-            for i in xrange(context_max_len // 50):
-                bw_iH_context = tf.slice(rev_H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
-                bw_iH_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
-                bw_iH_outputs, Hr_bw_init_state= tf.nn.dynamic_rnn(matchlstm_bw_cell,
-                                                        bw_iH_context,
-                                                        sequence_length=sequence_length(bw_iH_context_m),
-                                                        initial_state=Hr_bw_init_state,
-                                                        dtype=tf.float32)
-                scope.reuse_variables()
-                Hr_bw_init_state = tf.stop_gradient(Hr_bw_init_state)
-                Hr_bw_os.append(bw_iH_outputs)
-
-        H_r_bw = tf.concat(Hr_bw_os, axis=1)
-
+        # Hr_fw_os = []
+        # Hr_fw_init_state = matchlstm_fw_cell.zero_state(input_size, tf.float32)
+        # with tf.variable_scope('Hr_fw') as scope:
+        #     for i in xrange(context_max_len // 50):
+        #         iH_context = tf.slice(H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
+        #         iH_context_m = tf.slice(context_m, [0,i*50],[-1, 50])
+        #         iH_outputs, Hr_fw_init_state = tf.nn.dynamic_rnn(matchlstm_fw_cell,
+        #                                                 iH_context,
+        #                                                 sequence_length=sequence_length(iH_context_m),
+        #                                                 initial_state=Hr_fw_init_state,
+        #                                                 dtype=tf.float32)
+        #         scope.reuse_variables()
+        #         Hr_fw_init_state = tf.stop_gradient(Hr_fw_init_state)
+        #         Hr_fw_os.append(iH_outputs)
+        #
+        # H_r_fw = tf.concat(Hr_fw_os, axis=1)
+        # rev_H_context = tf.reverse(H_context,axis=[1])
+        # rev_context_m = tf.reverse(context_m, axis=[1])
+        # Hr_bw_os = []
+        # Hr_bw_init_state = matchlstm_bw_cell.zero_state(input_size, tf.float32)
+        # with tf.variable_scope('Hr_bw') as scope:
+        #     for i in xrange(context_max_len // 50):
+        #         bw_iH_context = tf.slice(rev_H_context, [0,i*50,0],[-1, 50, 2*num_hidden])
+        #         bw_iH_context_m = tf.slice(rev_context_m, [0,i*50],[-1, 50])
+        #         bw_iH_outputs, Hr_bw_init_state= tf.nn.dynamic_rnn(matchlstm_bw_cell,
+        #                                                 bw_iH_context,
+        #                                                 sequence_length=sequence_length(bw_iH_context_m),
+        #                                                 initial_state=Hr_bw_init_state,
+        #                                                 dtype=tf.float32)
+        #         scope.reuse_variables()
+        #         Hr_bw_init_state = tf.stop_gradient(Hr_bw_init_state)
+        #         Hr_bw_os.append(bw_iH_outputs)
+        #
+        # H_r_bw = tf.concat(Hr_bw_os, axis=1)
+        #
         with tf.name_scope('H_r'):
-            H_r = tf.concat([H_r_fw, tf.reverse(H_r_bw, axis=[1])], axis=2)
+            # H_r = tf.concat([H_r_fw, tf.reverse(H_r_bw, axis=[1])], axis=2)
+            H_r = tf.concat(H_r, axis=2)
             variable_summaries(H_r)
         # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
         # H_r = tf.concat(H_r, axis=2)
@@ -230,48 +234,57 @@ class Decoder(object):
         :return:
         """
         shape_Hr = tf.shape(H_r)
-        Hr_reshaped= tf.reshape(H_r, [tf.shape(H_r)[0], -1])
+        # Hr_reshaped= tf.reshape(H_r, [tf.shape(H_r)[0], -1])
         dtype = tf.float32
 
-        # xavier_initializer = tf.contrib.layers.xavier_initializer()
+        initializer = tf.contrib.layers.xavier_initializer()
         # initializer = tf.uniform_unit_scaling_initializer(1.0)
-        Wr = tf.get_variable('Wr', [context_max_len * 4 * num_hidden, 2 * num_hidden], dtype,
-                             # initializer
+        Wr = tf.get_variable('Wr', [4 * num_hidden, 2 * num_hidden], dtype,
+                             initializer
                              )
         Wh = tf.get_variable('Wh', [4 * num_hidden, 2 * num_hidden], dtype,
-                             # initializer
+                             initializer
                              )
-        Wf = tf.get_variable('Wf', [2 * num_hidden, context_max_len], dtype,
-                             # initializer
+        Wf = tf.get_variable('Wf', [2 * num_hidden, 1], dtype,
+                             initializer
                              )
         br = tf.get_variable('br', [2 * num_hidden], dtype,
                              tf.zeros_initializer())
-        bf = tf.get_variable('bf', [context_max_len, ], dtype,
+        bf = tf.get_variable('bf', [1, ], dtype,
                              tf.zeros_initializer())
         #TODO: consider insert dropout
-
-        f = tf.tanh(tf.matmul(Hr_reshaped, Wr) + br)
+        wr_e = tf.tile(tf.expand_dims(Wr, axis=[0]), [shape_Hr[0], 1, 1])
+        f = tf.tanh(tf.matmul(H_r, wr_e) + br)
+        # f = tf.tanh(tf.matmul(Hr_reshaped, Wr) + br)
+        wf_e = tf.tile(tf.expand_dims(Wf, axis=[0]), [shape_Hr[0], 1, 1])
         # scores of start token.
         with tf.name_scope('starter_score'):
-            s_score = tf.matmul(f, Wf) + bf
+            s_score = tf.squeeze(tf.matmul(f, wf_e) + bf, axis=[2])
+            # s_score = tf.matmul(f, Wf) + bf
             variable_summaries(s_score)
         with tf.name_scope('starter_prob'):
             s_prob = tf.nn.softmax(s_score)
+            # s_prob = tf.nn.softmax(s_score)
             variable_summaries(s_prob)
-        print('shape of s_score is {}'.format(tf.shape(s_score)))
+        print('shape of s_score is {}'.format(s_score.shape))
         Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
         #[batch_size x shape_Hr[-1]
-        Hr_attend = tf.reduce_sum(tf.multiply(H_r, Ps_tile), axis=1)
-        e_f = tf.tanh(tf.matmul(Hr_reshaped, Wr) +
-                      tf.matmul(Hr_attend, Wh) +
-                      br)
+        Hr_attend = tf.reduce_sum(tf.multiply(H_r, tf.expand_dims(s_prob,axis=[2])), axis=1)
+        e_f = tf.tanh(tf.matmul(H_r, wr_e) +
+                          tf.expand_dims(tf.matmul(Hr_attend, Wh),axis=[1])
+                          + br)
+        # Hr_attend = tf.reduce_sum(tf.multiply(H_r, Ps_tile), axis=1)
+        # e_f = tf.tanh(tf.matmul(Hr_reshaped, Wr) +
+        #               tf.matmul(Hr_attend, Wh) +
+        #               br)
         with tf.name_scope('end_score'):
-            e_score = tf.matmul(e_f, Wf) + bf
+            e_score = tf.squeeze(tf.matmul(e_f, wf_e) + bf, axis=[2])
+            # e_score = tf.matmul(e_f, Wf) + bf
             variable_summaries(e_score)
         with tf.name_scope('end_prob'):
             e_prob = tf.nn.softmax(e_score)
             variable_summaries(e_prob)
-        print('shape of e_score is {}'.format(tf.shape(e_score)))
+        print('shape of e_score is {}'.format(e_score.shape))
 
         return s_score, e_score
 
@@ -317,7 +330,7 @@ class QASystem(object):
         self.starter_learning_rate =  tf.placeholder(tf.float32, name='lr')
         learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
                                                    1000, 0.96, staircase=True)
-        tf.summary.scalar('learning rate', learning_rate)
+        tf.summary.scalar('learning_rate', learning_rate)
         self.optimizer = tf.train.AdamOptimizer(learning_rate)
         # self.optimizer = AdamaxOptimizer(learning_rate)
         # self.optimizer = tf.train.AdadeltaOptimizer(learning_rate)
@@ -325,18 +338,18 @@ class QASystem(object):
 
         #TODO: consider graidents clipping.
         gradients = self.optimizer.compute_gradients(self.final_loss)
-        # capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
+        capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
         # with tf.name_scope('gradients'):
         #     grad = [x[0] for x in capped_gvs]
             # variable_summaries(grad)
         grad = [x[0] for x in gradients]
-        var = [x[1] for x in gradients]
+        # var = [x[1] for x in gradients]
         # with tf.name_scope('grad_norm'):
         self.grad_norm = tf.global_norm(grad)
         tf.summary.scalar('grad_norm', self.grad_norm)
-        grad, self.grad_norm = tf.clip_by_global_norm(grad, self.max_grad_norm)
-        self.train_op = self.optimizer.apply_gradients(zip(grad, var), global_step=self.global_step)
-        # self.train_op = self.optimizer.apply_gradients(capped_gvs)
+        # grad, self.grad_norm = tf.clip_by_global_norm(grad, self.max_grad_norm)
+        # self.train_op = self.optimizer.apply_gradients(zip(grad, var), global_step=self.global_step)
+        self.train_op = self.optimizer.apply_gradients(capped_gvs, global_step=self.global_step)
 
         self.saver = tf.train.Saver()
 
@@ -528,61 +541,104 @@ class QASystem(object):
         if not isinstance(rev_vocab, np.ndarray):
             rev_vocab = np.array(rev_vocab)
 
-
+        input_batch_size = 100
 
         if training:
             # starter = random.randint(0, 4000)
             # ti = random.randint(1, 20)
             starter=100
-            ti=10
-            sample = 100
+            ti=0
+            sample = 4000
         else:
             starter = 0
-            sample = None
+            ti = 0
+            sample = -1
+
         train_context = dataset['train_context'][ti*starter:ti*starter+sample]
         train_question = dataset['train_question'][ti*starter:ti*starter+sample]
         train_answer = answers['raw_train_answer'][ti*starter:ti*starter+sample]
-        train_a_s, train_a_e = self.answer(session, train_context, train_question)
+        train_len = len(train_context)
 
+        logging.info('calculating the train set predictions.')
+        train_a_e = np.array([], dtype=np.int32)
+        train_a_s = np.array([], dtype=np.int32)
+        # train_a_s, train_a_e = self.answer(session, train_context[-(train_len % input_batch_size):],
+        #                                             train_question[-(train_len % input_batch_size):])
+        # print(train_a_s, train_a_e)
+        # print(train_a_s.shape, train_a_e.shape)
+        for i in xrange(train_len // input_batch_size):
+            sys.stdout.write('>>> %d / %d \r'%(i, train_len // input_batch_size))
+            sys.stdout.flush()
+            train_as, train_ae = self.answer(session, train_context[i*input_batch_size:(i+1)*input_batch_size]
+                                                        , train_question[i*input_batch_size:(i+1)*input_batch_size])
+            # print(train_as.shape, train_ae.shape)
+            train_a_s = np.concatenate((train_a_s, train_as),axis=0)
+            train_a_e = np.concatenate((train_a_e, train_ae),axis=0)
+
+        # print(train_a_s, train_a_e)
         tf1 = 0.
         tem = 0.
+        logging.info('length of train prediction: {}'.format(train_a_s.shape))
+        logging.info('get the scores for train set')
         for i, con in enumerate(train_context):
+            sys.stdout.write('>>> %d / %d \r'%(i, train_len))
+            sys.stdout.flush()
             prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction =  ' '.join(prediction)
-            # if i < 30:
-            #     print('prediction: {}'.format( prediction))
-            #     print(' g-truth:   {}'.format( train_answer[i]))
-            #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
+            if i < 30:
+                print('prediction: {}'.format( prediction))
+                print(' g-truth:   {}'.format( train_answer[i]))
+                print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
             tf1 += f1_score(prediction, train_answer[i])
             tem += exact_match_score(prediction, train_answer[i])
 
         if log:
             logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
-                         format(tf1/100.0, tem/100., sample))
-
+                         format(tf1/train_len, tem/train_len, train_len))
+        #
         val_context = dataset[set_name + '_context'][starter:sample+starter]
+        # # val_context = dataset[set_name + '_context']
         val_question = dataset[set_name + '_question'][starter:sample+starter]
-        # ['Corpus Juris Canonici', 'the Northside', 'Naples', ...]
+        # # val_question = dataset[set_name + '_question']
+        # # ['Corpus Juris Canonici', 'the Northside', 'Naples', ...]
         val_answer = answers['raw_val_answer'][starter:sample+starter]
-
-        val_a_s, val_a_e = self.answer(session, val_context, val_question)
-
+        val_a_s = np.array([], dtype=np.int32)
+        val_a_e = np.array([], dtype=np.int32)
+        val_len = len(val_context)
+        logging.info('calculating the validation set predictions.')
+        # val_a_s, val_a_e = self.answer(session, val_context,
+        #                                val_question)
+        for i in xrange(val_len // input_batch_size):
+            sys.stdout.write('>>> %d / %d \r'%(i, val_len // input_batch_size))
+            sys.stdout.flush()
+            a_s, a_e = self.answer(session, val_context[i*input_batch_size:(i+1)*input_batch_size],
+                                           val_question[i*input_batch_size:(i+1)*input_batch_size])
+            val_a_s = np.concatenate((val_a_s, a_s),axis=0)
+            val_a_e = np.concatenate((val_a_e, a_e),axis=0)
+        #
+        logging.info('getting scores of dev set.')
         for i, con in enumerate(val_context):
+            sys.stdout.write('>>> %d / %d \r'%(i, val_len))
+            sys.stdout.flush()
             prediction_ids = con[0][val_a_s[i] : val_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction = ' '.join(prediction)
+            if i < 30:
+                print('prediction: {}'.format( prediction))
+                print(' g-truth:   {}'.format( val_answer[i]))
+                print('f1_score: {}'.format(f1_score(prediction, val_answer[i])))
             f1 += f1_score(prediction, val_answer[i])
             em += exact_match_score(prediction, val_answer[i])
 
         if log:
             logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
-                         format(f1/100., em/100., sample))
+                         format(f1/val_len, em/val_len, val_len))
 
-        if training:
-            return tf1/100., tem/100., f1/100., em/100.
-        else:
-            return f1/100., em/100.
+        # if training:
+        return tf1/train_len, tem/train_len#, f1/val_len, em/val_len
+        # else:
+        # return f1/val_len, em/val_len
 
     def train(self,lr, session, dataset, answers, train_dir, debug_num = 0, raw_answers=None,
               rev_vocab=None):
@@ -637,6 +693,7 @@ class QASystem(object):
             print_every = 5
 
         num_example = len(train_answer)
+        logging.info('numexample')
         shuffle_list = np.arange(num_example)
         self.epochs = cfg.epochs
         self.losses = []
@@ -650,7 +707,7 @@ class QASystem(object):
         tic = time.time()
         write_every = 10
 
-        self.train_writer = tf.summary.FileWriter('summary/testtrain'+str(lr),
+        self.train_writer = tf.summary.FileWriter('summary/fulltest-ws'+str(lr),
                                                   session.graph)
 
         for ep in xrange(self.epochs):
@@ -665,7 +722,7 @@ class QASystem(object):
             #lr = 10**np.random.uniform(-7, 3)
 
 
-            # np.random.shuffle(shuffle_list)
+            np.random.shuffle(shuffle_list)
             train_context = train_context[shuffle_list]
             train_question = train_question[shuffle_list]
             train_answer = train_answer[shuffle_list]
@@ -685,7 +742,7 @@ class QASystem(object):
 
                 outputs = self.optimize(session, context,
                                                    question,answer,lr)
-                self.train_writer.add_summary(outputs[0], self.iters)
+                self.train_writer.add_summary(outputs[0], self.iters+2543)
                 if len(outputs) > 3:
                     loss, grad_norm = outputs[2:4]
                 else:

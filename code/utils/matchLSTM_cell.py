@@ -46,7 +46,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # initializer = tf.contrib.layers.xavier_initializer()
             initializer = tf.uniform_unit_scaling_initializer(1.0)
 
-            W_q = tf.get_variable('W_q', [question_max_len * self.input_size, self.input_size], dtype,
+            W_q = tf.get_variable('W_q', [self.input_size, self.input_size], dtype,
                                   initializer
                                   )
             W_c = tf.get_variable('W_c', [self.input_size, self.input_size], dtype,
@@ -56,24 +56,35 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
                                   # initializer
                                   identity_initializer()
                                   )
-            W_a = tf.get_variable('W_a', [self.input_size, question_max_len], dtype,
+            W_a = tf.get_variable('W_a', [self.input_size, 1], dtype,
                                   initializer
                                   )
             b_g = tf.get_variable('b_g', [self.input_size], dtype,
                                   tf.zeros_initializer())
-            b_a = tf.get_variable('b_a', [question_max_len], dtype,
+            b_a = tf.get_variable('b_a', [1], dtype,
                                   tf.zeros_initializer())
 
             # [question_max_len, 2*num_hidden]
-            g = tf.tanh(tf.matmul(tf.reshape(self.h_question, [num_example, -1]), W_q) + tf.matmul(inputs, W_c)
-                        + tf.matmul(state, W_r) + b_g)
+            wq_e = tf.tile(tf.expand_dims(W_q, axis=[0]), [num_example, 1, 1])
+            g = tf.tanh(tf.matmul(self.h_question, wq_e) # b x q x 2n
+                        + tf.expand_dims(tf.matmul(inputs, W_c)
+                        + tf.matmul(state, W_r) + b_g, axis=[1]))
             # [batch_size x question_max_len]
-            a = tf.nn.softmax(tf.matmul(g, W_a) + b_a)
+            wa_e = tf.tile(tf.expand_dims(W_a, axis=0), [num_example, 1, 1])
+            # b x q x 1
+            a = tf.nn.softmax(tf.squeeze(tf.matmul(g, wa_e) + b_a, axis=[2]))
+            question_attend = tf.reduce_sum(tf.multiply(self.h_question, tf.expand_dims(a, axis=[2]))
+                                            , axis=1)
+            # g = tf.tanh(tf.matmul(tf.reshape(self.h_question, [num_example, -1]), W_q)
+            #             + tf.matmul(inputs, W_c)
+            #             + tf.matmul(state, W_r) + b_g)
+            # [batch_size x question_max_len]
+            # a = tf.nn.softmax(tf.matmul(g, W_a) + b_a)
 
             # print('shape of matchlstm a is {}'.format(a.shape))
 
-            a_tile = tf.tile(tf.expand_dims(a, 2), [1, 1, 2 * num_hidden])
-            question_attend = tf.reduce_sum(tf.multiply(self.h_question, a_tile), axis=1)
+            # a_tile = tf.tile(tf.expand_dims(a, 2), [1, 1, 2 * num_hidden])
+            # question_attend = tf.reduce_sum(tf.multiply(self.h_question, a_tile), axis=1)
 
             z = tf.concat([inputs, question_attend], axis=1)
 

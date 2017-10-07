@@ -12,11 +12,11 @@ class Config:
     # data directory
     DATA_DIR = pjoin(os.path.abspath('..'), 'data', 'squad')
     # number of hidden units for lstm
-    lstm_num_hidden = 32
+    lstm_num_hidden = 50
     # embedding size
     embed_size = 100
     # batch_size = 32
-    batch_size = 32
+    batch_size = 64
     # training epochs
     epochs = 10
     # gradient clipping

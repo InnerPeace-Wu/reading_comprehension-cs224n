@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_integer("state_size", 200, "Size of each model layer.")
 tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model.")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("data_dir", "data/squad", "SQuAD directory (default ./data/squad)")
-tf.app.flags.DEFINE_string("train_dir", "train", "Training directory to save the model parameters (default: ./train).")
+tf.app.flags.DEFINE_string("train_dir", "train_ws", "Training directory to save the model parameters (default: ./train).")
 tf.app.flags.DEFINE_string("load_train_dir", "", "Training directory to load model parameters from to resume training (default: {train_dir}).")
 tf.app.flags.DEFINE_string("log_dir", "log", "Path to store log and flag files (default: ./log)")
 tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
@@ -139,18 +139,19 @@ def main(_):
             load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
             for i in tf.trainable_variables():
                 logging.info(i.name)
-            # initialize_model(sess, qa, load_train_dir)
+            initialize_model(sess, qa, load_train_dir)
 
             save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
             # saver = tf.train.Saver()
             # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
-            qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
-                     debug_num=100,
-                     rev_vocab=rev_vocab)
-
+            # qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
+            #          debug_num=100,
+            #          rev_vocab=rev_vocab)
+            #
             qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
                  log=True,
-                 training=True)
+                 # training=False
+                               )
 
 
 if __name__ == "__main__":

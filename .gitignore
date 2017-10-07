@@ -5,6 +5,8 @@ cache/
 code/train/
 code/log/
 code/summary/
+code/train_ws/
+code/tests/*.txt
 *.pdf 
 # pycharm
 .idea
