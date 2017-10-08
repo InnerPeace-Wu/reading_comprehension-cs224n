@@ -39,7 +39,39 @@ def npsave():
     b = np.load(file_path)
     print(b)
 
+
+def ensamble():
+    # file_path = pjoin(root, 'code/train/cache.npy')
+    file_path = '/home/joe/git/reading_comprehension/code/train/cache.npy'
+    data = np.load(file_path)
+    print(data.shape)
+    s = data[0]
+    e = data[1]
+    print(s.shape)
+    a = 39
+    ss = np.zeros((4000,), dtype=np.int32)
+    ee = np.zeros((4000,), dtype=np.int32)
+
+    for i in xrange(4000):
+        ss[i] = navie(data[0][i])
+        ee[i] = navie(data[1][i])
+        # if i < 10:
+        #     print(d[i])
+        #     print(ss[i])
+
+    # print(s[100:150])
+    # print(ss[100:150])
+    return ss, ee
+
+
+def navie(a):
+    for i in xrange(3):
+        if a[i] in a[i+1:]:
+            return a[i]
+    return np.mean(a)
+
 if __name__ == '__main__':
     # eval_text()
     # zip_test()
-    npsave()
+    # npsave()
+    ensamble()

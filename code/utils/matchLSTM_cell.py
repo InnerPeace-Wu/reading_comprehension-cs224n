@@ -72,7 +72,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
                         + tf.expand_dims(tf.matmul(inputs, W_c)
                         + tf.matmul(state, W_r) + b_g, axis=[1]))
             # add drop out
-            g = tf.nn.dropout(g, keep_prob=keep_prob)
+            # g = tf.nn.dropout(g, keep_prob=keep_prob)
             # [batch_size x question_max_len]
             wa_e = tf.tile(tf.expand_dims(W_a, axis=0), [num_example, 1, 1])
             # b x q x 1
@@ -91,7 +91,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # question_attend = tf.reduce_sum(tf.multiply(self.h_question, a_tile), axis=1)
 
             z = tf.concat([inputs, question_attend], axis=1)
-            z = tf.nn.dropout(z, keep_prob=keep_prob)
+            # z = tf.nn.dropout(z, keep_prob=keep_prob)
 
             # print('shape of matchlstm z is {}'.format(z.shape))
             # assert tf.shape(z) == [None, 4 * num_hidden], 'ERROR: the shape of z is {}'.format(tf.shape(z))

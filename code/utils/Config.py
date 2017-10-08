@@ -26,4 +26,4 @@ class Config:
     # gradients clip value
     clip_by_val = 10.
     # dropout keep probability
-    keep_prob = 0.9
+    keep_prob = 1.

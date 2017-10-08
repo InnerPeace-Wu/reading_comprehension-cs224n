@@ -37,7 +37,7 @@ start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
 regularizer = tf.contrib.layers.l2_regularizer(0.01)
 keep_prob =cfg.keep_prob
-it_add = 22887
+it_add = 20344
 
 def variable_summaries(var):
   """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
@@ -141,7 +141,7 @@ class Encoder(object):
         with tf.name_scope('H_context'):
             # H_context = tf.concat([H_context_fw, tf.reverse(H_context_bw, axis=[1])], 2)
             H_context = tf.concat(con_outputs, axis=2)
-            H_context = tf.nn.dropout(H_context, keep_prob=keep_prob)
+            # H_context = tf.nn.dropout(H_context, keep_prob=keep_prob)
             variable_summaries(H_context)
 
         logging.info('shape of H_context is {}'.format(H_context.shape))
@@ -161,7 +161,7 @@ class Encoder(object):
         with tf.name_scope('H_question'):
             H_question = tf.concat(ques_outputs, 2)
 
-            H_question = tf.nn.dropout(H_question, keep_prob=0.9)
+            # H_question = tf.nn.dropout(H_question, keep_prob=keep_prob)
             variable_summaries(H_question)
         # assert (None, question_max_len, 2 * num_hidden) == H_question.shape, \
         #     'the shape of H_context should be {} but it is {}'.format((None, question_max_len, 2 * num_hidden),
@@ -213,7 +213,7 @@ class Encoder(object):
         with tf.name_scope('H_r'):
             # H_r = tf.concat([H_r_fw, tf.reverse(H_r_bw, axis=[1])], axis=2)
             H_r = tf.concat(H_r, axis=2)
-            H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
+            # H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
             variable_summaries(H_r)
         # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
         # H_r = tf.concat(H_r, axis=2)
@@ -242,7 +242,7 @@ class Decoder(object):
         shape_Hr = tf.shape(H_r)
         # Hr_reshaped= tf.reshape(H_r, [tf.shape(H_r)[0], -1])
         dtype = tf.float32
-        H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
+        # H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
         initializer = tf.contrib.layers.xavier_initializer()
         # initializer = tf.uniform_unit_scaling_initializer(1.0)
         Wr = tf.get_variable('Wr', [4 * num_hidden, 2 * num_hidden], dtype,
@@ -532,7 +532,7 @@ class QASystem(object):
 
     def evaluate_answer(self, session, dataset, answers, rev_vocab,
                         set_name = 'val', training = True,  log=False,
-                        sam=100):
+                        sam=100, sendin=None):
         """
         Evaluate the model's performance using the harmonic mean of F1 and Exact Match (EM)
         with the set of true answer labels
@@ -566,50 +566,50 @@ class QASystem(object):
             ti = 0
             sample = -1
 
-        train_context = dataset['train_context'][ti*starter:ti*starter+sample]
-        train_question = dataset['train_question'][ti*starter:ti*starter+sample]
-        train_answer = answers['raw_train_answer'][ti*starter:ti*starter+sample]
-        train_len = len(train_context)
-
-        # logging.info('calculating the train set predictions.')
-        train_a_e = np.array([], dtype=np.int32)
-        train_a_s = np.array([], dtype=np.int32)
-        # train_a_s, train_a_e = self.answer(session, train_context[-(train_len % input_batch_size):],
-        #                                             train_question[-(train_len % input_batch_size):])
-        # print(train_a_s, train_a_e)
-        # print(train_a_s.shape, train_a_e.shape)
-        for i in xrange(train_len // input_batch_size):
-            sys.stdout.write('>>> %d / %d \r'%(i, train_len // input_batch_size))
-            sys.stdout.flush()
-            train_as, train_ae = self.answer(session, train_context[i*input_batch_size:(i+1)*input_batch_size]
-                                                        , train_question[i*input_batch_size:(i+1)*input_batch_size])
-            # print(train_as.shape, train_ae.shape)
-            train_a_s = np.concatenate((train_a_s, train_as),axis=0)
-            train_a_e = np.concatenate((train_a_e, train_ae),axis=0)
-
-        # print(train_a_s, train_a_e)
-        tf1 = 0.
-        tem = 0.
-        # logging.info('length of train prediction: {}'.format(train_a_s.shape))
-        # logging.info('get the scores for train set')
-        for i, con in enumerate(train_context):
-            sys.stdout.write('>>> %d / %d \r'%(i, train_len))
-            sys.stdout.flush()
-            prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
-            prediction = rev_vocab[prediction_ids]
-            prediction =  ' '.join(prediction)
-            # if i < 10:
-            #     print('context: {}'.format(con[0]))
-            #     print('prediction: {}'.format( prediction))
-            #     print(' g-truth:   {}'.format( train_answer[i]))
-            #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
-
-            tf1 += f1_score(prediction, train_answer[i])
-            tem += exact_match_score(prediction, train_answer[i])
-
-        if log:
-            logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
-                         format(tf1/train_len, tem/train_len, train_len))
+        # train_context = dataset['train_context'][ti*starter:ti*starter+sample]
+        # train_question = dataset['train_question'][ti*starter:ti*starter+sample]
+        # train_answer = answers['raw_train_answer'][ti*starter:ti*starter+sample]
+        # train_len = len(train_context)
+        #
+        # # logging.info('calculating the train set predictions.')
+        # train_a_e = np.array([], dtype=np.int32)
+        # train_a_s = np.array([], dtype=np.int32)
+        # # train_a_s, train_a_e = self.answer(session, train_context[-(train_len % input_batch_size):],
+        # #                                             train_question[-(train_len % input_batch_size):])
+        # # print(train_a_s, train_a_e)
+        # # print(train_a_s.shape, train_a_e.shape)
+        # for i in xrange(train_len // input_batch_size):
+        #     sys.stdout.write('>>> %d / %d \r'%(i, train_len // input_batch_size))
+        #     sys.stdout.flush()
+        #     train_as, train_ae = self.answer(session, train_context[i*input_batch_size:(i+1)*input_batch_size]
+        #                                                 , train_question[i*input_batch_size:(i+1)*input_batch_size])
+        #     # print(train_as.shape, train_ae.shape)
+        #     train_a_s = np.concatenate((train_a_s, train_as),axis=0)
+        #     train_a_e = np.concatenate((train_a_e, train_ae),axis=0)
+        #
+        # # print(train_a_s, train_a_e)
+        # tf1 = 0.
+        # tem = 0.
+        # # logging.info('length of train prediction: {}'.format(train_a_s.shape))
+        # # logging.info('get the scores for train set')
+        # for i, con in enumerate(train_context):
+        #     sys.stdout.write('>>> %d / %d \r'%(i, train_len))
+        #     sys.stdout.flush()
+        #     prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
+        #     prediction = rev_vocab[prediction_ids]
+        #     prediction =  ' '.join(prediction)
+        #     # if i < 10:
+        #     #     print('context: {}'.format(con[0]))
+        #     #     print('prediction: {}'.format( prediction))
+        #     #     print(' g-truth:   {}'.format( train_answer[i]))
+        #     #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
+        #
+        #     tf1 += f1_score(prediction, train_answer[i])
+        #     tem += exact_match_score(prediction, train_answer[i])
+        #
+        # if log:
+        #     logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
+        #                  format(tf1/train_len, tem/train_len, train_len))
         #
         val_context = dataset[set_name + '_context'][starter:sample+starter]
         # # val_context = dataset[set_name + '_context']
@@ -617,19 +617,24 @@ class QASystem(object):
         # # val_question = dataset[set_name + '_question']
         # # ['Corpus Juris Canonici', 'the Northside', 'Naples', ...]
         val_answer = answers['raw_val_answer'][starter:sample+starter]
-        val_a_s = np.array([], dtype=np.int32)
-        val_a_e = np.array([], dtype=np.int32)
+
         val_len = len(val_context)
         # logging.info('calculating the validation set predictions.')
         # val_a_s, val_a_e = self.answer(session, val_context,
         #                                val_question)
-        for i in xrange(val_len // input_batch_size):
-            sys.stdout.write('>>> %d / %d \r'%(i, val_len // input_batch_size))
-            sys.stdout.flush()
-            a_s, a_e = self.answer(session, val_context[i*input_batch_size:(i+1)*input_batch_size],
-                                           val_question[i*input_batch_size:(i+1)*input_batch_size])
-            val_a_s = np.concatenate((val_a_s, a_s),axis=0)
-            val_a_e = np.concatenate((val_a_e, a_e),axis=0)
+        if sendin:
+            val_a_s = sendin[0]
+            val_a_e = sendin[1]
+        else:
+            val_a_s = np.array([], dtype=np.int32)
+            val_a_e = np.array([], dtype=np.int32)
+            for i in xrange(val_len // input_batch_size):
+                sys.stdout.write('>>> %d / %d \r'%(i, val_len // input_batch_size))
+                sys.stdout.flush()
+                a_s, a_e = self.answer(session, val_context[i*input_batch_size:(i+1)*input_batch_size],
+                                               val_question[i*input_batch_size:(i+1)*input_batch_size])
+                val_a_s = np.concatenate((val_a_s, a_s),axis=0)
+                val_a_e = np.concatenate((val_a_e, a_e),axis=0)
         #
         # logging.info('getting scores of dev set.')
         for i, con in enumerate(val_context):
@@ -651,7 +656,8 @@ class QASystem(object):
                          format(f1/val_len, em/val_len, val_len))
 
         # if training:
-        return tf1/train_len, tem/train_len, f1/val_len, em/val_len
+        # return tf1/train_len, tem/train_len, f1/val_len, em/val_len
+        return val_a_s, val_a_e
         # else:
         # return f1/val_len, em/val_len
 
@@ -783,7 +789,7 @@ class QASystem(object):
                     self.train_eval.append((tf1, tem))
                     self.val_eval.append((f1, em))
                     tic = time.time()
-                if self.iters % 500 == 0:
+                if self.iters % 200 == 0:
                     logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
                     save_path = pjoin(train_dir, 'weights')
                     self.saver.save(session, save_path, global_step = self.iters + it_add)

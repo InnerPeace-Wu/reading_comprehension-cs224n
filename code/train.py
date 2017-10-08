@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_integer("state_size", 200, "Size of each model layer.")
 tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model.")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("data_dir", "data/squad", "SQuAD directory (default ./data/squad)")
-tf.app.flags.DEFINE_string("train_dir", "train/hard_drop_plus", "Training directory to save the model parameters (default: ./train).")
+tf.app.flags.DEFINE_string("train_dir", "train_drop", "Training directory to save the model parameters (default: ./train).")
 tf.app.flags.DEFINE_string("load_train_dir", "", "Training directory to load model parameters from to resume training (default: {train_dir}).")
 tf.app.flags.DEFINE_string("log_dir", "log", "Path to store log and flag files (default: ./log)")
 tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
@@ -120,11 +120,20 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
+    ##########
+
+    #############
+
+
     default = True
-    for i in xrange(1):
+    model_pathes = 'train/'
+    starts = np.zeros((4000, 4),dtype=np.int32)
+    ends = np.zeros((4000,4),dtype=np.int32)
+    for i in xrange(4):
+        mp = model_pathes + str(i+1)
         tf.reset_default_graph()
         if default:
-            lr = 2e-3
+            lr = 1e-3
             default = False
         else:
             lr = 10**np.random.uniform(-7, 1)
@@ -134,27 +143,48 @@ def main(_):
 
         with tf.Session(config=config) as sess:
             qa = QASystem(sess,encoder, decoder)
+            ############
+            from tests.eval_test import ensamble
+            s, e = ensamble()
+            qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+                 log=True,
+                 # training=False,
+                 sendin = (s, e),
+                 sam=4000)
+            break
+            #############
             init = tf.global_variables_initializer()
             sess.run(init)
-            load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
+            # load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
+            load_train_dir = get_normalized_train_dir(mp)
             # for i in tf.trainable_variables():
             #     logging.info(i.name)
-            for i in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES):
-                print(i.name)
+            # for i in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES):
+            #     print(i.name)
             initialize_model(sess, qa, load_train_dir)
 
             save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
             # saver = tf.train.Saver()
             # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
-            qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
+            # qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
                      # debug_num=100,
-                     rev_vocab=rev_vocab)
+                     # rev_vocab=rev_vocab)
             #
-            qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+            temp_answer = qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
                  log=True,
                  # training=False
                  sam=4000)
+            starts[:, i] = temp_answer[0]
+            ends[:, i] = temp_answer[1]
 
+    # np.save('train/cache.npy',(starts, ends))
+    # s = np.mean(starts, axis=1, dtype=np.int32)
+    # e = np.mean(ends, axis=1, dtype=np.int32)
+    # qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+    #              log=True,
+    #              # training=False,
+    #              sendin = (s, e),
+    #              sam=4000)
 
 if __name__ == "__main__":
     tf.app.run()
