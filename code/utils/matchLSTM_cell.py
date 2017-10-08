@@ -9,6 +9,8 @@ question_max_len = cfg.question_max_len
 context_max_len = cfg.context_max_len
 num_hidden = cfg.lstm_num_hidden
 embed_size = cfg.embed_size
+regularizer = None
+keep_prob = cfg.keep_prob
 
 class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
 
@@ -47,28 +49,30 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             initializer = tf.uniform_unit_scaling_initializer(1.0)
 
             W_q = tf.get_variable('W_q', [self.input_size, self.input_size], dtype,
-                                  initializer
+                                  initializer, regularizer=regularizer
                                   )
             W_c = tf.get_variable('W_c', [self.input_size, self.input_size], dtype,
-                                  initializer
+                                  initializer, regularizer=regularizer
                                   )
             W_r = tf.get_variable('W_r', [self._state_size, self.input_size], dtype,
                                   # initializer
-                                  identity_initializer()
+                                  identity_initializer(), regularizer=regularizer
                                   )
             W_a = tf.get_variable('W_a', [self.input_size, 1], dtype,
-                                  initializer
+                                  initializer, regularizer=regularizer
                                   )
             b_g = tf.get_variable('b_g', [self.input_size], dtype,
-                                  tf.zeros_initializer())
+                                  tf.zeros_initializer(), regularizer=None)
             b_a = tf.get_variable('b_a', [1], dtype,
-                                  tf.zeros_initializer())
+                                  tf.zeros_initializer(), regularizer=None)
 
             # [question_max_len, 2*num_hidden]
             wq_e = tf.tile(tf.expand_dims(W_q, axis=[0]), [num_example, 1, 1])
             g = tf.tanh(tf.matmul(self.h_question, wq_e) # b x q x 2n
                         + tf.expand_dims(tf.matmul(inputs, W_c)
                         + tf.matmul(state, W_r) + b_g, axis=[1]))
+            # add drop out
+            g = tf.nn.dropout(g, keep_prob=keep_prob)
             # [batch_size x question_max_len]
             wa_e = tf.tile(tf.expand_dims(W_a, axis=0), [num_example, 1, 1])
             # b x q x 1
@@ -87,6 +91,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # question_attend = tf.reduce_sum(tf.multiply(self.h_question, a_tile), axis=1)
 
             z = tf.concat([inputs, question_attend], axis=1)
+            z = tf.nn.dropout(z, keep_prob=keep_prob)
 
             # print('shape of matchlstm z is {}'.format(z.shape))
             # assert tf.shape(z) == [None, 4 * num_hidden], 'ERROR: the shape of z is {}'.format(tf.shape(z))
@@ -94,31 +99,33 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             # initializer = tf.contrib.layers.xavier_initializer()
             W_f = tf.get_variable('W_f', (self._state_size, self._state_size), dtype,
                                   # initializer
-                                  identity_initializer()
+                                  identity_initializer(), regularizer=regularizer
                                   )
             U_f = tf.get_variable('U_f', (2*self.input_size, self._state_size), dtype,
-                                  initializer
+                                  initializer, regularizer=regularizer
                                   )
             b_f = tf.get_variable('b_f', (self._state_size,), dtype,
-                                  tf.constant_initializer(1.0))
+                                  tf.constant_initializer(1.0),
+                                  regularizer=None)
             W_z = tf.get_variable('W_z', (self.state_size, self._state_size), dtype,
                                   # initializer
-                                  identity_initializer()
+                                  identity_initializer(), regularizer=regularizer
                                   )
             U_z = tf.get_variable('U_z', (2*self.input_size, self._state_size), dtype,
-                                  initializer
+                                  initializer,regularizer=regularizer
                                   )
             b_z = tf.get_variable('b_z', (self.state_size,), dtype,
-                                  tf.constant_initializer(1.0))#tf.zeros_initializer())
+                                  tf.constant_initializer(1.0),
+                                  regularizer=None)#tf.zeros_initializer())
             W_o = tf.get_variable('W_o', (self.state_size, self._state_size), dtype,
                                   # initializer
-                                  identity_initializer
+                                  identity_initializer,regularizer=regularizer
                                   )
             U_o = tf.get_variable('U_o', (2*self.input_size, self._state_size), dtype,
-                                  initializer
+                                  initializer,regularizer=regularizer
                                   )
             b_o = tf.get_variable('b_o', (self._state_size,), dtype,
-                                  tf.constant_initializer(0.0))
+                                  tf.constant_initializer(0.0), regularizer=None)
 
             z_t = tf.nn.sigmoid(tf.matmul(z, U_z)
                                 + tf.matmul(state, W_z) + b_z)

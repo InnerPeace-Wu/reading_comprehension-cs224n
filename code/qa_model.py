@@ -35,6 +35,8 @@ embed_dim  = 100
 batch_size = cfg.batch_size
 start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
+regularizer = tf.contrib.layers.l2_regularizer(0.01)
+keep_prob =cfg.keep_prob
 
 def variable_summaries(var):
   """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
@@ -82,6 +84,7 @@ class Encoder(object):
         question_embed = tf.nn.embedding_lookup(embedding, question)
         print('shape of question embed {}'.format(question_embed.shape))
 
+        # with tf.variable_scope('context_lstm', )
         con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
         con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
         con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(con_lstm_fw_cell,con_lstm_bw_cell,
@@ -137,7 +140,7 @@ class Encoder(object):
         with tf.name_scope('H_context'):
             # H_context = tf.concat([H_context_fw, tf.reverse(H_context_bw, axis=[1])], 2)
             H_context = tf.concat(con_outputs, axis=2)
-
+            H_context = tf.nn.dropout(H_context, keep_prob=keep_prob)
             variable_summaries(H_context)
 
         logging.info('shape of H_context is {}'.format(H_context.shape))
@@ -156,7 +159,7 @@ class Encoder(object):
                                                                             dtype=dtype, scope='ques_lstm')
         with tf.name_scope('H_question'):
             H_question = tf.concat(ques_outputs, 2)
-
+            H_question = tf.nn.dropout(H_question, keep_prob=keep_prob+0.1)
             variable_summaries(H_question)
         # assert (None, question_max_len, 2 * num_hidden) == H_question.shape, \
         #     'the shape of H_context should be {} but it is {}'.format((None, question_max_len, 2 * num_hidden),
@@ -208,6 +211,7 @@ class Encoder(object):
         with tf.name_scope('H_r'):
             # H_r = tf.concat([H_r_fw, tf.reverse(H_r_bw, axis=[1])], axis=2)
             H_r = tf.concat(H_r, axis=2)
+            H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
             variable_summaries(H_r)
         # H_r = tf.cast(tf.concat(H_r, axis=2), tf.float32)
         # H_r = tf.concat(H_r, axis=2)
@@ -236,17 +240,17 @@ class Decoder(object):
         shape_Hr = tf.shape(H_r)
         # Hr_reshaped= tf.reshape(H_r, [tf.shape(H_r)[0], -1])
         dtype = tf.float32
-
+        H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
         initializer = tf.contrib.layers.xavier_initializer()
         # initializer = tf.uniform_unit_scaling_initializer(1.0)
         Wr = tf.get_variable('Wr', [4 * num_hidden, 2 * num_hidden], dtype,
-                             initializer
+                             initializer, regularizer=regularizer
                              )
         Wh = tf.get_variable('Wh', [4 * num_hidden, 2 * num_hidden], dtype,
-                             initializer
+                             initializer, regularizer=regularizer
                              )
         Wf = tf.get_variable('Wf', [2 * num_hidden, 1], dtype,
-                             initializer
+                             initializer, regularizer=regularizer
                              )
         br = tf.get_variable('br', [2 * num_hidden], dtype,
                              tf.zeros_initializer())
@@ -255,6 +259,7 @@ class Decoder(object):
         #TODO: consider insert dropout
         wr_e = tf.tile(tf.expand_dims(Wr, axis=[0]), [shape_Hr[0], 1, 1])
         f = tf.tanh(tf.matmul(H_r, wr_e) + br)
+        f = tf.nn.dropout(f, keep_prob=keep_prob)
         # f = tf.tanh(tf.matmul(Hr_reshaped, Wr) + br)
         wf_e = tf.tile(tf.expand_dims(Wf, axis=[0]), [shape_Hr[0], 1, 1])
         # scores of start token.
@@ -267,7 +272,7 @@ class Decoder(object):
             # s_prob = tf.nn.softmax(s_score)
             variable_summaries(s_prob)
         print('shape of s_score is {}'.format(s_score.shape))
-        Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
+        #Ps_tile = tf.tile(tf.expand_dims(tf.nn.softmax(s_score), 2), [1, 1, shape_Hr[2]])
         #[batch_size x shape_Hr[-1]
         Hr_attend = tf.reduce_sum(tf.multiply(H_r, tf.expand_dims(s_prob,axis=[2])), axis=1)
         e_f = tf.tanh(tf.matmul(H_r, wr_e) +
@@ -312,9 +317,11 @@ class QASystem(object):
         self.answer_e = tf.placeholder(tf.int32, (None,))
         self.batch_size = tf.placeholder(tf.int32,[], name='batch_size')
 
+
         # ==== assemble pieces ====
         with tf.variable_scope("qa",
-                               initializer=tf.uniform_unit_scaling_initializer(1.0)
+                               initializer=tf.uniform_unit_scaling_initializer(1.0,),
+                               # regularizer=self.regularizer
                                # initializer=identity_initializer
                                ):
             self.setup_embeddings()
@@ -380,11 +387,13 @@ class QASystem(object):
             loss_s = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.s_score, labels=self.answer_s)
 
-        loss_e = tf.nn.sparse_softmax_cross_entropy_with_logits(
+            loss_e = tf.nn.sparse_softmax_cross_entropy_with_logits(
             logits=self.e_score, labels=self.answer_e
         )
+            reg_variables = tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)
+            reg_term = tf.contrib.layers.apply_regularization(regularizer, reg_variables)
 
-        self.final_loss = tf.reduce_mean(loss_e + loss_s)
+        self.final_loss = tf.reduce_mean(loss_e + loss_s) + reg_term
         tf.summary.scalar('final_loss', self.final_loss)
 
 
@@ -520,7 +529,8 @@ class QASystem(object):
         return valid_cost
 
     def evaluate_answer(self, session, dataset, answers, rev_vocab,
-                        set_name = 'val', training = True,  log=False):
+                        set_name = 'val', training = True,  log=False,
+                        sam=100):
         """
         Evaluate the model's performance using the harmonic mean of F1 and Exact Match (EM)
         with the set of true answer labels
@@ -548,7 +558,7 @@ class QASystem(object):
             # ti = random.randint(1, 20)
             starter=100
             ti=0
-            sample = 4000
+            sample = sam
         else:
             starter = 0
             ti = 0
@@ -559,7 +569,7 @@ class QASystem(object):
         train_answer = answers['raw_train_answer'][ti*starter:ti*starter+sample]
         train_len = len(train_context)
 
-        logging.info('calculating the train set predictions.')
+        # logging.info('calculating the train set predictions.')
         train_a_e = np.array([], dtype=np.int32)
         train_a_s = np.array([], dtype=np.int32)
         # train_a_s, train_a_e = self.answer(session, train_context[-(train_len % input_batch_size):],
@@ -578,18 +588,18 @@ class QASystem(object):
         # print(train_a_s, train_a_e)
         tf1 = 0.
         tem = 0.
-        logging.info('length of train prediction: {}'.format(train_a_s.shape))
-        logging.info('get the scores for train set')
+        # logging.info('length of train prediction: {}'.format(train_a_s.shape))
+        # logging.info('get the scores for train set')
         for i, con in enumerate(train_context):
             sys.stdout.write('>>> %d / %d \r'%(i, train_len))
             sys.stdout.flush()
             prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction =  ' '.join(prediction)
-            if i < 30:
-                print('prediction: {}'.format( prediction))
-                print(' g-truth:   {}'.format( train_answer[i]))
-                print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
+            # if i < 30:
+            #     print('prediction: {}'.format( prediction))
+            #     print(' g-truth:   {}'.format( train_answer[i]))
+            #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
             tf1 += f1_score(prediction, train_answer[i])
             tem += exact_match_score(prediction, train_answer[i])
 
@@ -606,7 +616,7 @@ class QASystem(object):
         val_a_s = np.array([], dtype=np.int32)
         val_a_e = np.array([], dtype=np.int32)
         val_len = len(val_context)
-        logging.info('calculating the validation set predictions.')
+        # logging.info('calculating the validation set predictions.')
         # val_a_s, val_a_e = self.answer(session, val_context,
         #                                val_question)
         for i in xrange(val_len // input_batch_size):
@@ -617,17 +627,17 @@ class QASystem(object):
             val_a_s = np.concatenate((val_a_s, a_s),axis=0)
             val_a_e = np.concatenate((val_a_e, a_e),axis=0)
         #
-        logging.info('getting scores of dev set.')
+        # logging.info('getting scores of dev set.')
         for i, con in enumerate(val_context):
             sys.stdout.write('>>> %d / %d \r'%(i, val_len))
             sys.stdout.flush()
             prediction_ids = con[0][val_a_s[i] : val_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction = ' '.join(prediction)
-            if i < 30:
-                print('prediction: {}'.format( prediction))
-                print(' g-truth:   {}'.format( val_answer[i]))
-                print('f1_score: {}'.format(f1_score(prediction, val_answer[i])))
+            # if i < 30:
+            #     print('prediction: {}'.format( prediction))
+            #     print(' g-truth:   {}'.format( val_answer[i]))
+            #     print('f1_score: {}'.format(f1_score(prediction, val_answer[i])))
             f1 += f1_score(prediction, val_answer[i])
             em += exact_match_score(prediction, val_answer[i])
 
@@ -636,7 +646,7 @@ class QASystem(object):
                          format(f1/val_len, em/val_len, val_len))
 
         # if training:
-        return tf1/train_len, tem/train_len#, f1/val_len, em/val_len
+        return tf1/train_len, tem/train_len, f1/val_len, em/val_len
         # else:
         # return f1/val_len, em/val_len
 
@@ -707,7 +717,7 @@ class QASystem(object):
         tic = time.time()
         write_every = 10
 
-        self.train_writer = tf.summary.FileWriter('summary/fulltest-ws'+str(lr),
+        self.train_writer = tf.summary.FileWriter('summary/drop_test-ws'+str(lr),
                                                   session.graph)
 
         for ep in xrange(self.epochs):
@@ -730,7 +740,7 @@ class QASystem(object):
             for it in xrange(batch_num):
                 # if self.iters > 1000:
                 #     break
-                sys.stdout.write('> %d%%/%d%% \r'%(self.iters%print_every, print_every))
+                sys.stdout.write('> %d / %d \r'%(self.iters%print_every, print_every))
                 sys.stdout.flush()
                 context = train_context[it * batch_size: (it + 1)*batch_size]
                 question = train_question[it * batch_size: (it + 1)*batch_size]
@@ -742,7 +752,7 @@ class QASystem(object):
 
                 outputs = self.optimize(session, context,
                                                    question,answer,lr)
-                self.train_writer.add_summary(outputs[0], self.iters+2543)
+                self.train_writer.add_summary(outputs[0], self.iters)
                 if len(outputs) > 3:
                     loss, grad_norm = outputs[2:4]
                 else:
@@ -759,6 +769,7 @@ class QASystem(object):
                 self.iters += 1
                 if self.iters % print_every == 0:
                     toc = time.time()
+
                     logging.info('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
                         self.iters, total_iterations, loss, grad_norm, toc - tic
                     ))
@@ -771,6 +782,8 @@ class QASystem(object):
             logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
             save_path = pjoin(train_dir, 'weights')
             self.saver.save(session, save_path, global_step = self.iters )
+            tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers,rev_vocab,
+                                                            training=True,log=True,sam=4000)
 
             data_dict = {'losses':self.losses, 'norms':self.norms,
                          'train_eval':self.train_eval, 'val_eval':self.val_eval}
