@@ -29,7 +29,7 @@ tf.app.flags.DEFINE_integer("state_size", 200, "Size of each model layer.")
 tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model.")
 tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
 tf.app.flags.DEFINE_string("data_dir", "data/squad", "SQuAD directory (default ./data/squad)")
-tf.app.flags.DEFINE_string("train_dir", "train/hard_drop", "Training directory to save the model parameters (default: ./train).")
+tf.app.flags.DEFINE_string("train_dir", "train/hard_drop_plus", "Training directory to save the model parameters (default: ./train).")
 tf.app.flags.DEFINE_string("load_train_dir", "", "Training directory to load model parameters from to resume training (default: {train_dir}).")
 tf.app.flags.DEFINE_string("log_dir", "log", "Path to store log and flag files (default: ./log)")
 tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
@@ -141,7 +141,7 @@ def main(_):
             #     logging.info(i.name)
             for i in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES):
                 print(i.name)
-            #initialize_model(sess, qa, load_train_dir)
+            initialize_model(sess, qa, load_train_dir)
 
             save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
             # saver = tf.train.Saver()

@@ -37,6 +37,7 @@ start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
 regularizer = tf.contrib.layers.l2_regularizer(0.01)
 keep_prob =cfg.keep_prob
+it_add = 22887
 
 def variable_summaries(var):
   """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
@@ -159,7 +160,8 @@ class Encoder(object):
                                                                             dtype=dtype, scope='ques_lstm')
         with tf.name_scope('H_question'):
             H_question = tf.concat(ques_outputs, 2)
-            H_question = tf.nn.dropout(H_question, keep_prob=keep_prob+0.1)
+
+            H_question = tf.nn.dropout(H_question, keep_prob=0.9)
             variable_summaries(H_question)
         # assert (None, question_max_len, 2 * num_hidden) == H_question.shape, \
         #     'the shape of H_context should be {} but it is {}'.format((None, question_max_len, 2 * num_hidden),
@@ -596,10 +598,12 @@ class QASystem(object):
             prediction_ids = con[0][train_a_s[i] : train_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction =  ' '.join(prediction)
-            # if i < 30:
+            # if i < 10:
+            #     print('context: {}'.format(con[0]))
             #     print('prediction: {}'.format( prediction))
             #     print(' g-truth:   {}'.format( train_answer[i]))
             #     print('f1_score: {}'.format(f1_score(prediction, train_answer[i])))
+
             tf1 += f1_score(prediction, train_answer[i])
             tem += exact_match_score(prediction, train_answer[i])
 
@@ -634,7 +638,8 @@ class QASystem(object):
             prediction_ids = con[0][val_a_s[i] : val_a_e[i] + 1]
             prediction = rev_vocab[prediction_ids]
             prediction = ' '.join(prediction)
-            # if i < 30:
+            # if i < 10:
+            #     print('context : {}'.format(con[0]))
             #     print('prediction: {}'.format( prediction))
             #     print(' g-truth:   {}'.format( val_answer[i]))
             #     print('f1_score: {}'.format(f1_score(prediction, val_answer[i])))
@@ -752,7 +757,7 @@ class QASystem(object):
 
                 outputs = self.optimize(session, context,
                                                    question,answer,lr)
-                self.train_writer.add_summary(outputs[0], self.iters)
+                self.train_writer.add_summary(outputs[0], self.iters + it_add)
                 if len(outputs) > 3:
                     loss, grad_norm = outputs[2:4]
                 else:
@@ -778,12 +783,12 @@ class QASystem(object):
                     self.train_eval.append((tf1, tem))
                     self.val_eval.append((f1, em))
                     tic = time.time()
-
-            logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
-            save_path = pjoin(train_dir, 'weights')
-            self.saver.save(session, save_path, global_step = self.iters )
-            tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers,rev_vocab,
-                                                            training=True,log=True,sam=4000)
+                if self.iters % 500 == 0:
+                    logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
+                    save_path = pjoin(train_dir, 'weights')
+                    self.saver.save(session, save_path, global_step = self.iters + it_add)
+                    tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers,rev_vocab,
+                                                                    training=True,log=True,sam=4000)
 
             data_dict = {'losses':self.losses, 'norms':self.norms,
                          'train_eval':self.train_eval, 'val_eval':self.val_eval}

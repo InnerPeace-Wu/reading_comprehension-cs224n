@@ -18,7 +18,7 @@ class Config:
     # batch_size = 32
     batch_size = 32
     # training epochs
-    epochs = 10
+    epochs = 5
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
@@ -26,4 +26,4 @@ class Config:
     # gradients clip value
     clip_by_val = 10.
     # dropout keep probability
-    keep_prob = 0.8
+    keep_prob = 0.9
