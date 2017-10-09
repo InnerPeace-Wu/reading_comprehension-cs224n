@@ -11,11 +11,10 @@ from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
 import numpy as np
 
-from utils.mask_inputs import mask_dataset
-from utils.mask_inputs import read_answers, read_raw_answers
-from utils.Config import Config as cfg
+from utils.read_data import mask_dataset
+from utils.read_data import read_answers, read_raw_answers
+from Config import Config as cfg
 
-# lr = cfg.start_lr
 import logging
 
 logging.basicConfig(level=logging.INFO)

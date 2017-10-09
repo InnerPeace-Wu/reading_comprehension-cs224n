@@ -1,14 +1,17 @@
 # a4
+data
 data/
 download/
 cache/
-code/train/
-code/log/
-code/summary/
-code/train_ws/
-code/tests/*.txt
-code/keeping
-code/train_drop
+train/
+train
+log/
+summary/
+train_ws/
+tests/*.txt
+tests/test/
+keeping
+train_drop
 *.pdf 
 # pycharm
 .idea

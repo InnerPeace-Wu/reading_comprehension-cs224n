@@ -1,11 +1,16 @@
+
+'''matchLSTM cell'''
+
+__author__ = 'innerpeace'
+
 import sys
 sys.path.append('..')
-from os.path import join as pjoin
-import numpy as np
+# from os.path import join as pjoin
+# import numpy as np
 import tensorflow as tf
-from utils.Config import Config as cfg
-from utils.mask_inputs import mask_input
-import tensorflow.contrib.rnn as rnn
+from Config import Config as cfg
+# from utils.mask_inputs import mask_input
+# import tensorflow.contrib.rnn as rnn
 import logging
 
 question_max_len = cfg.question_max_len

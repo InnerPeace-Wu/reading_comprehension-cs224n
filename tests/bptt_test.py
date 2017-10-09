@@ -1,3 +1,8 @@
+
+'''demo of truncated backpropagation in rnn'''
+
+__author__ = 'innerpeace'
+
 import tensorflow as tf
 
 class testCell(tf.nn.rnn_cell.RNNCell):
@@ -21,19 +26,17 @@ class testCell(tf.nn.rnn_cell.RNNCell):
         # It's always a good idea to scope variables in functions lest they
         # be defined elsewhere!
         with tf.variable_scope(scope, dtype=tf.float32):
-            # w1 = tf.Variable([3.], name='w1')
-            w1 = tf.get_variable('w1',[1],initializer=tf.constant_initializer(3.))
-            # b1 = tf.Variable([1.], name='b1')
-            b1 = tf.get_variable('b1',[1],initializer=tf.constant_initializer(1.))
-            # wh = tf.Variable([2.], name='w2')
+            # use get_variable to reuse the variables.
+            wx = tf.get_variable('wx',[1],initializer=tf.constant_initializer(3.))
+            bx = tf.get_variable('bx',[1],initializer=tf.constant_initializer(1.))
             wh = tf.get_variable('wh',[1],initializer=tf.constant_initializer(2.))
-            # b2 = tf.Variable([1.], name='b2')
-            b2 = tf.get_variable('b2',[1],initializer=tf.constant_initializer(1.))
-            output = w1 * inputs + b1 + wh * state + b2
+            bh = tf.get_variable('bh',[1],initializer=tf.constant_initializer(1.))
+            output = wx * inputs + bx + wh * state + bh
             new_state = output
 
         return output, new_state
-def sl(mask):
+
+def sequence_length(mask):
     return tf.reduce_sum(mask, axis=1)
 
 def main():
@@ -59,12 +62,11 @@ def main():
                 pin = tf.slice(inputs, [0, i,0],[-1, 1, -1])
                 m = tf.slice(mask, [0, i],[-1, 1])
                 out, init_state = tf.nn.dynamic_rnn(cell, pin,
-                                                    sequence_length=sl(m),
+                                                    sequence_length=sequence_length(m),
                                                     initial_state=init_state,
                                                     dtype=tf.float32)
                 scope.reuse_variables()
                 init_state = tf.stop_gradient(init_state)
-                # tf.stop_gradient(out)
                 outs.append(out)
                 states.append(init_state)
 

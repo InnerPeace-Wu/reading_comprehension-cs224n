@@ -1,9 +1,14 @@
+
+'''rnn test'''
+
+__author__ = 'innerpeace'
+
 import sys
 sys.path.append('..')
 from os.path import join as pjoin
 import numpy as np
 import tensorflow as tf
-from utils.Config import Config as cfg
+from Config import Config as cfg
 from utils.mask_inputs import mask_input
 import tensorflow.contrib.rnn as rnn
 
@@ -34,8 +39,6 @@ def rnn_test():
     masks = [x[1] for x in test_data]
     masks = np.array(masks)
     print('shape of masks {}'.format(masks.shape))
-
-
 
     with tf.graph().as_default():
         # embedding_tf = tf.Variable(embedding)

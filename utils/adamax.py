@@ -1,3 +1,6 @@
+
+'''adatped from github of openai'''
+
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import state_ops

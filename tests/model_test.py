@@ -1,10 +1,15 @@
+
+'''overall model testing'''
+
+__author__ = 'innerpeace'
+
 import sys
 import logging
 sys.path.append('..')
 from os.path import join as pjoin
 import numpy as np
 import tensorflow as tf
-from utils.Config import Config as cfg
+from Config import Config as cfg
 from utils.mask_inputs import mask_input
 from utils.mask_inputs import read_answers
 

@@ -1,6 +1,10 @@
+'''tensorflow test of feed with pure list.'''
+
+__author__ = 'innerpeace'
+
 import tensorflow as tf
 
-def test01():
+def feed_test():
     a = tf.placeholder(tf.float32, (2, 2))
     # w = tf.Variable(tf.ones((2,2)))
     w = tf.Variable([[1,2],[1,2]], dtype=tf.float32)
@@ -10,7 +14,5 @@ def test01():
     sess.run(init)
     print(sess.run(m, feed_dict={a:[[2,2],[2,2]]}))
 
-
-
 if __name__ == '__main__':
-    test01()
+    feed_test()
