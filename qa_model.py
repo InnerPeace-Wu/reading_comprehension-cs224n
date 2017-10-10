@@ -70,6 +70,12 @@ def get_optimizer(opt):
         assert (False)
     return optfn
 
+def smooth(a, beta=0.8):
+    '''smooth the curve'''
+
+    for i in xrange(1, len(a)):
+        a[i] = beta * a[i-1] + (1 - beta)*a[i]
+    return a
 
 class Encoder(object):
     def __init__(self, vocab_dim=embed_dim, size=2 * num_hidden):
@@ -658,12 +664,12 @@ class QASystem(object):
         '''draw figs'''
         fig, _ = plt.subplots(nrows=2, ncols=1)
         plt.subplot(2, 1, 1)
-        plt.plot(self.losses, )
+        plt.plot(smooth(self.losses))
         plt.xlabel('iterations')
         plt.ylabel('loss')
 
         plt.subplot(2, 1, 2)
-        plt.plot(self.norms, )
+        plt.plot(smooth(self.norms))
         plt.xlabel('iterations')
         plt.ylabel('gradients norms')
         plt.title('lr={}'.format(lr))
@@ -675,8 +681,8 @@ class QASystem(object):
         # plt.figure()
         fig, _ = plt.subplots(nrows=2, ncols=1)
         plt.subplot(2, 1, 1)
-        plt.plot([x[0] for x in self.train_eval])
-        plt.plot([x[0] for x in self.val_eval])
+        plt.plot(smooth([x[0] for x in self.train_eval]))
+        plt.plot(smooth([x[0] for x in self.val_eval]))
         plt.legend(['train', 'val'], loc='upper left')
         plt.xlabel('iterations')
         plt.ylabel('f1 score')

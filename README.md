@@ -34,7 +34,7 @@ did not do experiment to see how it differed from xavier or others.
 - [x] add tensorboard to monitor.
 - [x] overfit a minibatch.
 - [x] done tones of things, and miss keeping note.
-- [ ] use running average algorithm to draw a nicer loss curve.
+- [x] use running average algorithm to draw a nicer loss curve.
 - [ ] finish qa_answer.py, work with pure json file.
 - [ ] add interactive mode.
 
