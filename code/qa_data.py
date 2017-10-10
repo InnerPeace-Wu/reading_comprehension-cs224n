@@ -11,7 +11,7 @@ import argparse
 from six.moves import urllib
 
 from tensorflow.python.platform import gfile
-from tqdm import *
+# from tqdm import *
 import numpy as np
 from os.path import join as pjoin
 
