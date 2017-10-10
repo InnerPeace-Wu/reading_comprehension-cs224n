@@ -120,10 +120,6 @@ def main(_):
         json.dump(FLAGS.__flags, fout)
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    ##########
-
-    #############
-
 
     default = True
     model_pathes = 'train/'
