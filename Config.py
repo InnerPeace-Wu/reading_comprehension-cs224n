@@ -35,7 +35,7 @@ class Config:
     # batch_size = 32
     batch_size = 32
     # training epochs
-    epochs = 5
+    epochs = 10
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
@@ -44,7 +44,7 @@ class Config:
     clip_by_val = 10.
     # dropout keep probability
     # during test, one have to change it to 1.
-    keep_prob = 1
+    keep_prob = 0.9
     # data type for all
     dtype = tf.float32
     # optimizer: 'adam', 'sgd' or 'adamax'
@@ -53,7 +53,7 @@ class Config:
     opt = 'adam'
     # regularizer with stength 0.01 for final softmax layers.
     # regularizer = tf.contrib.layers.l2_regularizer(0.01)
-    reg = 0.01
+    reg = 0.001
     # print every n step during training
     print_every = 20
     # summary dictory

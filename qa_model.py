@@ -92,8 +92,10 @@ class Encoder(object):
         """
 
         context_embed = tf.nn.embedding_lookup(embedding, context)
+        context_embed = tf.nn.dropout(context_embed, keep_prob=keep_prob)
         logging.info('shape of context embed {}'.format(context_embed.shape))
         question_embed = tf.nn.embedding_lookup(embedding, question)
+        question_embed = tf.nn.dropout(question_embed, keep_prob=keep_prob)
         logging.info('shape of question embed {}'.format(question_embed.shape))
 
         # TODO: one may use truncated backprop
@@ -130,14 +132,16 @@ class Encoder(object):
         with tf.name_scope('H_question'):
             H_question = tf.concat(ques_outputs, 2)
             # TODO: add drop out
-            # H_question = tf.nn.dropout(H_question, keep_prob=keep_prob)
+            H_question = tf.nn.dropout(H_question, keep_prob=keep_prob)
             variable_summaries(H_question)
 
         logging.info('shape of H_question is {}'.format(H_question.shape))
 
         with tf.variable_scope('Hr'):
-            matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
-            matchlstm_bw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question)
+            matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question,
+                                              question_m)
+            matchlstm_bw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question,
+                                              question_m)
             H_r, _ = tf.nn.bidirectional_dynamic_rnn(matchlstm_fw_cell,
                                                      matchlstm_bw_cell,
                                                      H_context,
@@ -158,7 +162,7 @@ class Decoder(object):
     def __init__(self, output_size=2 * num_hidden):
         self.output_size = output_size
 
-    def decode(self, H_r):
+    def decode(self, H_r, context_m):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -170,6 +174,7 @@ class Decoder(object):
                               decided by how you choose to implement the encoder
         :return:
         """
+        context_m = tf.cast(context_m, tf.float32)
         initializer = tf.contrib.layers.xavier_initializer()
         # initializer = tf.uniform_unit_scaling_initializer(1.0)
 
@@ -202,6 +207,7 @@ class Decoder(object):
         # for checking out the probabilities of starter index
         with tf.name_scope('starter_prob'):
             s_prob = tf.nn.softmax(s_score)
+            s_prob = tf.multiply(s_prob, context_m)
             variable_summaries(s_prob)
 
         logging.info('shape of s_score is {}'.format(s_score.shape))
@@ -216,6 +222,7 @@ class Decoder(object):
         # for checking out the probabilities of end index
         with tf.name_scope('end_prob'):
             e_prob = tf.nn.softmax(e_score)
+            e_prob = tf.multiply(e_prob, context_m)
             variable_summaries(e_prob)
         logging.info('shape of e_score is {}'.format(e_score.shape))
 
@@ -296,7 +303,7 @@ class QASystem(object):
             self.context,
             self.context_m, self.question,
             self.question_m, self.embedding)
-        self.s_score, self.e_score = self.decoder.decode(H_r)
+        self.s_score, self.e_score = self.decoder.decode(H_r, self.context_m)
 
     def setup_loss(self):
         """
@@ -500,7 +507,7 @@ class QASystem(object):
         else:
             val_a_s = np.array([], dtype=np.int32)
             val_a_e = np.array([], dtype=np.int32)
-            for i in tqdm(range(val_len // input_batch_size), desc='validation set'):
+            for i in tqdm(range(val_len // input_batch_size), desc='validation   '):
                 # sys.stdout.write('>>> %d / %d \r'%(i, val_len // input_batch_size))
                 # sys.stdout.flush()
                 a_s, a_e = self.answer(session, val_context[i * input_batch_size:(i + 1) * input_batch_size],
@@ -654,8 +661,8 @@ class QASystem(object):
             data_dict = {'losses': self.losses, 'norms': self.norms,
                          'train_eval': self.train_eval, 'val_eval': self.val_eval}
             c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
-            data_save_path = pjoin('cache', str(self.iters) + 'iters' + c_time + '.npy')
-            np.save(data_save_path, data_dict)
+            data_save_path = pjoin('cache', str(self.iters) + 'iters' + c_time + '.npz')
+            np.savez(data_save_path, data_dict)
             self.draw_figs(c_time, lr)
 
             # plt.show()

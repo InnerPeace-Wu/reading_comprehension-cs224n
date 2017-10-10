@@ -21,10 +21,12 @@ dtype = cfg.dtype
 
 
 class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
-    def __init__(self, input_size, state_size, h_question):
+    def __init__(self, input_size, state_size, h_question, question_m):
         self.input_size = input_size
         self._state_size = state_size
         self.h_question = h_question
+        # self.question_m = tf.expand_dims(tf.cast(question_m, tf.int32), axis=[2])
+        self.question_m = tf.cast(question_m, tf.float32)
 
     @property
     def state_size(self):
@@ -70,11 +72,13 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
                         + tf.expand_dims(tf.matmul(inputs, W_c)
                                          + tf.matmul(state, W_r) + b_g, axis=[1]))
             # TODO:add drop out
-            g = tf.nn.dropout(g, keep_prob=keep_prob)
+            # g = tf.nn.dropout(g, keep_prob=keep_prob)
 
             wa_e = tf.tile(tf.expand_dims(W_a, axis=0), [num_example, 1, 1])
             # shape: b x q x 1
             a = tf.nn.softmax(tf.squeeze(tf.matmul(g, wa_e) + b_a, axis=[2]))
+            # mask out the attention over the padding.
+            a = tf.multiply(a, self.question_m)
             question_attend = tf.reduce_sum(tf.multiply(self.h_question, tf.expand_dims(a, axis=[2]))
                                             , axis=1)
 

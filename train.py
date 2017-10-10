@@ -20,7 +20,8 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-tf.app.flags.DEFINE_string("load_train_dir", "", "Training directory to load model parameters from to resume training (default: {train_dir}).")
+tf.app.flags.DEFINE_string("load_train_dir", "",
+                           "Training directory to load model parameters from to resume training (default: {train_dir}).")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -79,28 +80,30 @@ def main(_):
     vocab_path = pjoin(data_dir, cfg.vocab_file)
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
-    c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
+    c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
     if not os.path.exists(cfg.log_dir):
         os.makedirs(cfg.log_dir)
     if not os.path.exists(cfg.cache_dir):
         os.makedirs(cfg.cache_dir)
     if not os.path.exists(cfg.fig_dir):
         os.makedirs(cfg.fig_dir)
-    file_handler = logging.FileHandler(pjoin(cfg.log_dir, 'log'+c_time+'.txt'))
+    file_handler = logging.FileHandler(pjoin(cfg.log_dir, 'log' + c_time + '.txt'))
     logging.getLogger().addHandler(file_handler)
 
-    print(vars(FLAGS))
+    print_parameters()
+
+    logging.info(vars(FLAGS))
     with open(os.path.join(cfg.log_dir, "flags.json"), 'w') as fout:
         json.dump(FLAGS.__flags, fout)
 
-    #gpu setting
+    # gpu setting
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
 
     tf.reset_default_graph()
 
-    encoder = Encoder(size=2*cfg.lstm_num_hidden)
-    decoder = Decoder(output_size=2*cfg.lstm_num_hidden)
+    encoder = Encoder(size=2 * cfg.lstm_num_hidden)
+    decoder = Decoder(output_size=2 * cfg.lstm_num_hidden)
     qa = QASystem(encoder, decoder)
 
     with tf.Session(config=config) as sess:
@@ -117,13 +120,23 @@ def main(_):
         initialize_model(sess, qa, load_train_dir)
 
         save_train_dir = get_normalized_train_dir(cfg.train_dir)
-        qa.train(cfg.start_lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
-        #          debug_num=100,
+        qa.train(cfg.start_lr, sess, dataset, answers, save_train_dir,
+                 raw_answers=raw_answers,
+                 # debug_num=1000,
                  rev_vocab=rev_vocab)
         qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-             log=True,
-             training=False,
-             sample=4000)
+                           log=True,
+                           training=False,
+                           sample=4000)
+
+def print_parameters():
+    logging.info('======== trained with key parameters ============')
+    logging.info('context max length: {}'.format(cfg.context_max_len))
+    logging.info('question max length: {}'.format(cfg.question_max_len))
+    logging.info('lstm num hidden: {}'.format(cfg.lstm_num_hidden))
+    logging.info('batch size: {}'.format(cfg.batch_size))
+    logging.info('start learning rate: {}'.format(cfg.start_lr))
+    logging.info('dropout keep probability: {}'.format(cfg.keep_prob))
 
 if __name__ == "__main__":
     tf.app.run()
