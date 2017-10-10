@@ -14,28 +14,13 @@ import numpy as np
 from utils.read_data import mask_dataset
 from utils.read_data import read_answers, read_raw_answers
 from Config import Config as cfg
+import time
 
 import logging
 
 logging.basicConfig(level=logging.INFO)
 
-tf.app.flags.DEFINE_float("learning_rate", 0.01, "Learning rate.")
-tf.app.flags.DEFINE_float("max_gradient_norm", 10.0, "Clip gradients to this norm.")
-tf.app.flags.DEFINE_float("dropout", 0.15, "Fraction of units randomly dropped on non-recurrent connections.")
-tf.app.flags.DEFINE_integer("batch_size", 10, "Batch size to use during training.")
-tf.app.flags.DEFINE_integer("epochs", 10, "Number of epochs to train.")
-tf.app.flags.DEFINE_integer("state_size", 200, "Size of each model layer.")
-tf.app.flags.DEFINE_integer("output_size", 750, "The output size of your model.")
-tf.app.flags.DEFINE_integer("embedding_size", 100, "Size of the pretrained vocabulary.")
-tf.app.flags.DEFINE_string("data_dir", "data/squad", "SQuAD directory (default ./data/squad)")
-tf.app.flags.DEFINE_string("train_dir", "train_drop", "Training directory to save the model parameters (default: ./train).")
 tf.app.flags.DEFINE_string("load_train_dir", "", "Training directory to load model parameters from to resume training (default: {train_dir}).")
-tf.app.flags.DEFINE_string("log_dir", "log", "Path to store log and flag files (default: ./log)")
-tf.app.flags.DEFINE_string("optimizer", "adam", "adam / sgd")
-tf.app.flags.DEFINE_integer("print_every", 1, "How many iterations to do per print.")
-tf.app.flags.DEFINE_integer("keep", 0, "How many checkpoints to keep, 0 indicates keep all.")
-tf.app.flags.DEFINE_string("vocab_path", "data/squad/vocab.dat", "Path to vocab file (default: ./data/squad/vocab.dat)")
-tf.app.flags.DEFINE_string("embed_path", "", "Path to the trimmed GLoVe embedding (default: ./data/squad/glove.trimmed.{embedding_size}.npz)")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -85,105 +70,60 @@ def get_normalized_train_dir(train_dir):
 def main(_):
 
     data_dir = cfg.DATA_DIR
-    # Do what you need to load datasets from FLAGS.data_dir
-    set_names = ['train', 'val']
-    suffixes = ['context', 'question']
+    set_names = cfg.set_names
+    suffixes = cfg.suffixes
     dataset = mask_dataset(data_dir, set_names, suffixes)
-    '''
-    dataset is a dict with
-    {'train-context': [(data, mask),...],
-     'train-question': [(data, mask),...],
-     'val-context': [(data, mask),...],
-     'val-question': [(data,mask),...]}
-    '''
     answers = read_answers(data_dir)
     raw_answers = read_raw_answers(data_dir)
 
-    embed_path = FLAGS.embed_path or pjoin("data", "squad", "glove.trimmed.{}.npz".format(FLAGS.embedding_size))
-    # vocab_path = FLAGS.vocab_path or pjoin(data_dir, "vocab.dat")
-    vocab_path = pjoin(data_dir, "vocab.dat")
+    vocab_path = pjoin(data_dir, cfg.vocab_file)
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
-    # encoder = Encoder(size=FLAGS.state_size, vocab_dim=FLAGS.embedding_size)
-    # decoder = Decoder(output_size=FLAGS.output_size)
-
-    import time
     c_time = time.strftime('%Y%m%d_%H%M',time.localtime())
-    if not os.path.exists(FLAGS.log_dir):
-        os.makedirs(FLAGS.log_dir)
-    file_handler = logging.FileHandler(pjoin(FLAGS.log_dir, 'log'+c_time+'.txt'))
+    if not os.path.exists(cfg.log_dir):
+        os.makedirs(cfg.log_dir)
+    if not os.path.exists(cfg.cache_dir):
+        os.makedirs(cfg.cache_dir)
+    if not os.path.exists(cfg.fig_dir):
+        os.makedirs(cfg.fig_dir)
+    file_handler = logging.FileHandler(pjoin(cfg.log_dir, 'log'+c_time+'.txt'))
     logging.getLogger().addHandler(file_handler)
 
     print(vars(FLAGS))
-    with open(os.path.join(FLAGS.log_dir, "flags.json"), 'w') as fout:
+    with open(os.path.join(cfg.log_dir, "flags.json"), 'w') as fout:
         json.dump(FLAGS.__flags, fout)
+
+    #gpu setting
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
-    ##########
 
-    #############
+    tf.reset_default_graph()
 
+    encoder = Encoder(size=2*cfg.lstm_num_hidden)
+    decoder = Decoder(output_size=2*cfg.lstm_num_hidden)
+    qa = QASystem(encoder, decoder)
 
-    default = True
-    model_pathes = 'train/'
-    starts = np.zeros((4000, 4),dtype=np.int32)
-    ends = np.zeros((4000,4),dtype=np.int32)
-    for i in xrange(4):
-        mp = model_pathes + str(i+1)
-        tf.reset_default_graph()
-        if default:
-            lr = 1e-3
-            default = False
-        else:
-            lr = 10**np.random.uniform(-7, 1)
-        print('=========== lr={} ==========='.format(lr))
-        encoder = Encoder()
-        decoder = Decoder()
+    with tf.Session(config=config) as sess:
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        load_train_dir = get_normalized_train_dir(cfg.train_dir)
+        logging.info('=========== trainable varaibles ============')
+        for i in tf.trainable_variables():
+            logging.info(i.name)
+        logging.info('=========== regularized varaibles ============')
+        for i in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES):
+            logging.info(i.name)
 
-        with tf.Session(config=config) as sess:
-            qa = QASystem(sess,encoder, decoder)
-            ############
-            from tests.eval_test import ensamble
-            s, e = ensamble()
-            qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-                 log=True,
-                 # training=False,
-                 sendin = (s, e),
-                 sam=4000)
-            break
-            #############
-            init = tf.global_variables_initializer()
-            sess.run(init)
-            # load_train_dir = get_normalized_train_dir(FLAGS.load_train_dir or FLAGS.train_dir)
-            load_train_dir = get_normalized_train_dir(mp)
-            # for i in tf.trainable_variables():
-            #     logging.info(i.name)
-            # for i in tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES):
-            #     print(i.name)
-            initialize_model(sess, qa, load_train_dir)
+        initialize_model(sess, qa, load_train_dir)
 
-            save_train_dir = get_normalized_train_dir(FLAGS.train_dir)
-            # saver = tf.train.Saver()
-            # qa.train(sess, dataset,answers,save_train_dir,  debug_num=100)
-            # qa.train(lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
-                     # debug_num=100,
-                     # rev_vocab=rev_vocab)
-            #
-            temp_answer = qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-                 log=True,
-                 # training=False
-                 sam=4000)
-            starts[:, i] = temp_answer[0]
-            ends[:, i] = temp_answer[1]
-
-    # np.save('train/cache.npy',(starts, ends))
-    # s = np.mean(starts, axis=1, dtype=np.int32)
-    # e = np.mean(ends, axis=1, dtype=np.int32)
-    # qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-    #              log=True,
-    #              # training=False,
-    #              sendin = (s, e),
-    #              sam=4000)
+        save_train_dir = get_normalized_train_dir(cfg.train_dir)
+        qa.train(cfg.start_lr, sess,dataset,answers,save_train_dir, raw_answers=raw_answers,
+        #          debug_num=100,
+                 rev_vocab=rev_vocab)
+        qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
+             log=True,
+             training=False,
+             sample=4000)
 
 if __name__ == "__main__":
     tf.app.run()

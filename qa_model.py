@@ -35,7 +35,8 @@ embed_dim = cfg.embed_size
 batch_size = cfg.batch_size
 start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
-regularizer = cfg.regularizer
+# regularizer = cfg.regularizer
+regularizer = tf.contrib.layers.l2_regularizer(cfg.reg)
 keep_prob = cfg.keep_prob
 dtype = cfg.dtype
 
@@ -260,7 +261,8 @@ class QASystem(object):
             learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
                                                        1000, 0.96, staircase=True)
             tf.summary.scalar('learning_rate', learning_rate)
-            self.optimizer = get_optimizer(cfg.opt)
+            # self.optimizer = get_optimizer(cfg.opt)
+            self.optimizer = tf.train.AdamOptimizer(learning_rate)
 
             # TODO: consider graidents clipping.
             gradients = self.optimizer.compute_gradients(self.final_loss)
@@ -586,6 +588,7 @@ class QASystem(object):
         self.train_eval = []
         self.val_eval = []
         self.iters = 0
+        save_path = pjoin(train_dir, 'weights')
         self.train_writer = tf.summary.FileWriter(cfg.summary_dir + str(lr),
                                                   session.graph)
 
@@ -616,7 +619,7 @@ class QASystem(object):
 
                 outputs = self.optimize(session, context, question, answer, lr)
                 self.train_writer.add_summary(outputs[0], self.iters)
-                loss, grad_norm = outputs[1:3]
+                loss, grad_norm = outputs[2:]
 
                 ep_loss += loss
                 self.losses.append(loss)
@@ -634,10 +637,11 @@ class QASystem(object):
                     tic = time.time()
 
                 if self.iters % cfg.save_every == 0:
-                    save_path = pjoin(train_dir, 'weights')
                     self.saver.save(session, save_path, global_step=self.iters)
                     self.evaluate_answer(session, dataset, raw_answers, rev_vocab,
                                          training=True, log=True, sample=4000)
+            if cfg.save_every_epoch:
+                self.saver.save(session, save_path, global_step=self.iters)
 
             logging.info('average loss of epoch {}/{} is {}'.format(ep + 1, self.epochs, ep_loss / batch_num))
 
@@ -666,7 +670,7 @@ class QASystem(object):
         fig.tight_layout()
 
         output_fig = 'lr-' + str(lr) + 'loss-norms' + c_time + '.pdf'
-        plt.savefig('figs/' + output_fig, format='pdf')
+        plt.savefig(pjoin(cfg.fig_dir, output_fig), format='pdf')
 
         # plt.figure()
         fig, _ = plt.subplots(nrows=2, ncols=1)
@@ -687,7 +691,7 @@ class QASystem(object):
         fig.tight_layout()
 
         eval_out = 'lr-' + str(lr) + 'f1-em' + c_time + '.pdf'
-        plt.savefig('figs/' + eval_out, format='pdf')
+        plt.savefig(pjoin(cfg.fig_dir, eval_out), format='pdf')
 
 if __name__ == '__main__':
     # test
