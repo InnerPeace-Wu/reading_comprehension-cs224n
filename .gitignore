@@ -12,7 +12,7 @@ tests/*.txt
 tests/test/
 keeping
 train_drop
-*.pdf 
+fig/
 # pycharm
 .idea
 # Byte-compiled / optimized / DLL files
