@@ -30,6 +30,10 @@ Meanwhile, one can run:
 python eval_interactive.py
 ```
 to do interactive test, where you can input context and question, then take a look what the model get for you.
+<div align='center'>
+<img src='files/demo.jpeg'>
+</div>
+
 
 ## Takeaways 
 
@@ -40,9 +44,8 @@ did not do experiment to see how it differed from xavier or others.
 * My best result is: `F1: 0.643` and `EM: 0.4975` for 4000 samples in dev set.
 
 <div align='center'>
-<img src='files/loss-norms.pdf'>
+<img src='files/loss_norms.pdf'>
 </div>
-![loss-norm]['files/loss-norms.pdf']
 
 ## TO DO:
 
