@@ -1,0 +1,220 @@
+embed size: 100 for path /home/joe/git/rc_master/data/squad/glove.trimmed.100.npz
+shape of context embed (?, 400, 100)
+shape of question embed (?, 30, 100)
+shape of H_context is (?, 400, 128)
+shape of H_question is (?, 30, 128)
+shape of Hr is (?, 400, 256)
+shape of s_score is (?, 400)
+shape of e_score is (?, 400)
+qa/context/lstm/fw/basic_lstm_cell/kernel:0
+qa/context/lstm/fw/basic_lstm_cell/bias:0
+qa/context/lstm/bw/basic_lstm_cell/kernel:0
+qa/context/lstm/bw/basic_lstm_cell/bias:0
+qa/question/lstm/fw/basic_lstm_cell/kernel:0
+qa/question/lstm/fw/basic_lstm_cell/bias:0
+qa/question/lstm/bw/basic_lstm_cell/kernel:0
+qa/question/lstm/bw/basic_lstm_cell/bias:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_o:0
+qa/Wr:0
+qa/Wh:0
+qa/Wf:0
+qa/br:0
+qa/bf:0
+Reading model parameters from /tmp/cs224n-squad-train/weights-2000
+Restoring parameters from /tmp/cs224n-squad-train/weights-2000
+Training set ==> F1: 0.798222495446, EM: 0.67, for 4000 samples
+Validation   ==> F1: 0.640746571817, EM: 0.5, for 4000 samples
+embed size: 100 for path /home/joe/git/rc_master/data/squad/glove.trimmed.100.npz
+shape of context embed (?, 400, 100)
+shape of question embed (?, 30, 100)
+shape of H_context is (?, 400, 128)
+shape of H_question is (?, 30, 128)
+shape of Hr is (?, 400, 256)
+shape of s_score is (?, 400)
+shape of e_score is (?, 400)
+qa/context/lstm/fw/basic_lstm_cell/kernel:0
+qa/context/lstm/fw/basic_lstm_cell/bias:0
+qa/context/lstm/bw/basic_lstm_cell/kernel:0
+qa/context/lstm/bw/basic_lstm_cell/bias:0
+qa/question/lstm/fw/basic_lstm_cell/kernel:0
+qa/question/lstm/fw/basic_lstm_cell/bias:0
+qa/question/lstm/bw/basic_lstm_cell/kernel:0
+qa/question/lstm/bw/basic_lstm_cell/bias:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_o:0
+qa/Wr:0
+qa/Wh:0
+qa/Wf:0
+qa/br:0
+qa/bf:0
+Reading model parameters from /tmp/cs224n-squad-train/weights-2543
+Restoring parameters from /tmp/cs224n-squad-train/weights-2543
+Training set ==> F1: 0.799500095861, EM: 0.67075, for 4000 samples
+Validation   ==> F1: 0.642569551467, EM: 0.4995, for 4000 samples
+embed size: 100 for path /home/joe/git/rc_master/data/squad/glove.trimmed.100.npz
+shape of context embed (?, 400, 100)
+shape of question embed (?, 30, 100)
+shape of H_context is (?, 400, 128)
+shape of H_question is (?, 30, 128)
+shape of Hr is (?, 400, 256)
+shape of s_score is (?, 400)
+shape of e_score is (?, 400)
+qa/context/lstm/fw/basic_lstm_cell/kernel:0
+qa/context/lstm/fw/basic_lstm_cell/bias:0
+qa/context/lstm/bw/basic_lstm_cell/kernel:0
+qa/context/lstm/bw/basic_lstm_cell/bias:0
+qa/question/lstm/fw/basic_lstm_cell/kernel:0
+qa/question/lstm/fw/basic_lstm_cell/bias:0
+qa/question/lstm/bw/basic_lstm_cell/kernel:0
+qa/question/lstm/bw/basic_lstm_cell/bias:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_o:0
+qa/Wr:0
+qa/Wh:0
+qa/Wf:0
+qa/br:0
+qa/bf:0
+Reading model parameters from /tmp/cs224n-squad-train/weights-4000
+Restoring parameters from /tmp/cs224n-squad-train/weights-4000
+Training set ==> F1: 0.803943041239, EM: 0.6755, for 4000 samples
+Validation   ==> F1: 0.643328529269, EM: 0.4975, for 4000 samples
+embed size: 100 for path /home/joe/git/rc_master/data/squad/glove.trimmed.100.npz
+shape of context embed (?, 400, 100)
+shape of question embed (?, 30, 100)
+shape of H_context is (?, 400, 128)
+shape of H_question is (?, 30, 128)
+shape of Hr is (?, 400, 256)
+shape of s_score is (?, 400)
+shape of e_score is (?, 400)
+qa/context/lstm/fw/basic_lstm_cell/kernel:0
+qa/context/lstm/fw/basic_lstm_cell/bias:0
+qa/context/lstm/bw/basic_lstm_cell/kernel:0
+qa/context/lstm/bw/basic_lstm_cell/bias:0
+qa/question/lstm/fw/basic_lstm_cell/kernel:0
+qa/question/lstm/fw/basic_lstm_cell/bias:0
+qa/question/lstm/bw/basic_lstm_cell/kernel:0
+qa/question/lstm/bw/basic_lstm_cell/bias:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/fw/matchLSTMcell/b_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_q:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_c:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_r:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_g:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_a:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_f:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_z:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/W_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/U_o:0
+qa/Hr/bidirectional_rnn/bw/matchLSTMcell/b_o:0
+qa/Wr:0
+qa/Wh:0
+qa/Wf:0
+qa/br:0
+qa/bf:0
+Reading model parameters from /tmp/cs224n-squad-train/weights-6000
+Restoring parameters from /tmp/cs224n-squad-train/weights-6000
+Training set ==> F1: 0.811090126899, EM: 0.686, for 4000 samples
+Validation   ==> F1: 0.63971751932, EM: 0.5, for 4000 samples

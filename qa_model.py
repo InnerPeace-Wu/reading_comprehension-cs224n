@@ -93,10 +93,10 @@ class Encoder(object):
 
         context_embed = tf.nn.embedding_lookup(embedding, context)
         context_embed = tf.nn.dropout(context_embed, keep_prob=keep_prob)
-        logging.info('shape of context embed {}'.format(context_embed.shape))
+        # logging.info('shape of context embed {}'.format(context_embed.shape))
         question_embed = tf.nn.embedding_lookup(embedding, question)
         question_embed = tf.nn.dropout(question_embed, keep_prob=keep_prob)
-        logging.info('shape of question embed {}'.format(question_embed.shape))
+        # logging.info('shape of question embed {}'.format(question_embed.shape))
 
         # TODO: one may use truncated backprop
         with tf.variable_scope('context'):
@@ -115,7 +115,7 @@ class Encoder(object):
             H_context = tf.nn.dropout(H_context, keep_prob=keep_prob)
             variable_summaries(H_context)
 
-        logging.info('shape of H_context is {}'.format(H_context.shape))
+        # logging.info('shape of H_context is {}'.format(H_context.shape))
 
         with tf.variable_scope('question'):
             ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
@@ -135,7 +135,7 @@ class Encoder(object):
             H_question = tf.nn.dropout(H_question, keep_prob=keep_prob)
             variable_summaries(H_question)
 
-        logging.info('shape of H_question is {}'.format(H_question.shape))
+        # logging.info('shape of H_question is {}'.format(H_question.shape))
 
         with tf.variable_scope('Hr'):
             matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question,
@@ -153,7 +153,7 @@ class Encoder(object):
             H_r = tf.nn.dropout(H_r, keep_prob=keep_prob)
             variable_summaries(H_r)
 
-        logging.info('shape of Hr is {}'.format(H_r.shape))
+        # logging.info('shape of Hr is {}'.format(H_r.shape))
 
         return H_r
 
@@ -210,7 +210,7 @@ class Decoder(object):
             s_prob = tf.multiply(s_prob, context_m)
             variable_summaries(s_prob)
 
-        logging.info('shape of s_score is {}'.format(s_score.shape))
+        # logging.info('shape of s_score is {}'.format(s_score.shape))
         Hr_attend = tf.reduce_sum(tf.multiply(H_r, tf.expand_dims(s_prob, axis=[2])), axis=1)
         e_f = tf.tanh(tf.matmul(H_r, wr_e) +
                       tf.expand_dims(tf.matmul(Hr_attend, Wh), axis=[1])
@@ -224,7 +224,7 @@ class Decoder(object):
             e_prob = tf.nn.softmax(e_score)
             e_prob = tf.multiply(e_prob, context_m)
             variable_summaries(e_prob)
-        logging.info('shape of e_score is {}'.format(e_score.shape))
+        # logging.info('shape of e_score is {}'.format(e_score.shape))
 
         return s_score, e_score
 
@@ -262,9 +262,6 @@ class QASystem(object):
             self.setup_embeddings()
             self.setup_system()
             self.setup_loss()
-
-            for i in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES):
-                logging.info(i.name)
 
             # ==== set up training/updating procedure ====
             self.global_step = tf.Variable(0, trainable=False)
@@ -362,7 +359,7 @@ class QASystem(object):
 
         return outputs
 
-    def test(self, session, context, question, answer):
+    def precict(self, session, context, question):
         """
         in here you should compute a cost for your validation set
         and tune your hyperparameters according to the validation set performance
@@ -428,7 +425,7 @@ class QASystem(object):
 
     def evaluate_answer(self, session, dataset, answers, rev_vocab,
                         set_name='val', training=False, log=False,
-                        sample=(100, 100), sendin=None):
+                        sample=(100, 100), sendin=None, ensemble=False):
         """
         Evaluate the model's performance using the harmonic mean of F1 and Exact Match (EM)
         with the set of true answer labels
@@ -458,17 +455,20 @@ class QASystem(object):
             train_answer = answers['raw_train_answer'][:sample[0]]
             train_len = len(train_context)
 
-            train_a_e = np.array([], dtype=np.int32)
-            train_a_s = np.array([], dtype=np.int32)
+            if sendin and len(sendin) > 2:
+                train_a_s, train_a_e = sendin[0:2]
+            else:
+                train_a_e = np.array([], dtype=np.int32)
+                train_a_s = np.array([], dtype=np.int32)
 
-            for i in tqdm(range(train_len // input_batch_size), desc='trianing set'):
-                # sys.stdout.write('>>> %d / %d \r'%(i, train_len // input_batch_size))
-                # sys.stdout.flush()
-                train_as, train_ae = self.answer(session,
-                                                 train_context[i * input_batch_size:(i + 1) * input_batch_size],
-                                                 train_question[i * input_batch_size:(i + 1) * input_batch_size])
-                train_a_s = np.concatenate((train_a_s, train_as), axis=0)
-                train_a_e = np.concatenate((train_a_e, train_ae), axis=0)
+                for i in tqdm(range(train_len // input_batch_size), desc='trianing set'):
+                    # sys.stdout.write('>>> %d / %d \r'%(i, train_len // input_batch_size))
+                    # sys.stdout.flush()
+                    train_as, train_ae = self.answer(session,
+                                                     train_context[i * input_batch_size:(i + 1) * input_batch_size],
+                                                     train_question[i * input_batch_size:(i + 1) * input_batch_size])
+                    train_a_s = np.concatenate((train_a_s, train_as), axis=0)
+                    train_a_e = np.concatenate((train_a_e, train_ae), axis=0)
 
             tf1 = 0.
             tem = 0.
@@ -501,9 +501,10 @@ class QASystem(object):
         val_len = len(val_context)
         # logging.info('calculating the validation set predictions.')
 
-        if sendin:
-            val_a_s = sendin[0]
-            val_a_e = sendin[1]
+        if sendin and len(sendin) > 2:
+            val_a_s, val_a_e = sendin[-2:]
+        elif sendin:
+            val_a_s, val_a_e = sendin
         else:
             val_a_s = np.array([], dtype=np.int32)
             val_a_e = np.array([], dtype=np.int32)
@@ -534,10 +535,12 @@ class QASystem(object):
             logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
                          format(f1 / val_len, em / val_len, val_len))
 
-        if not training:
+        if ensemble and training:
+            return train_a_s, train_a_e, val_a_s, val_a_e
+        elif ensemble:
             return val_a_s, val_a_e
-        else:
-            return tf1 / train_len, tem / train_len, f1 / val_len, em / val_len
+        # else:
+        #     return tf1 / train_len, tem / train_len, f1 / val_len, em / val_len
 
     def train(self, lr, session, dataset, answers, train_dir, debug_num=0, raw_answers=None,
               rev_vocab=None):

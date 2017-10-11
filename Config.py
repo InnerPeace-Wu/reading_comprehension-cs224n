@@ -15,7 +15,7 @@ class Config:
     # data directory
     DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
     # training directory to load or save model.
-    train_dir = 'train/test'
+    train_dir = 'train/test_plus'
     # log direcotry to save log files
     log_dir = 'log'
     # figure directory to save figures
@@ -35,16 +35,16 @@ class Config:
     # batch_size = 32
     batch_size = 32
     # training epochs
-    epochs = 10
+    epochs = 5
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
-    start_lr = 2e-3
+    start_lr = 5e-4
     # gradients clip value
     clip_by_val = 10.
     # dropout keep probability
     # during test, one have to change it to 1.
-    keep_prob = 0.9
+    keep_prob = 1.
     # data type for all
     dtype = tf.float32
     # optimizer: 'adam', 'sgd' or 'adamax'
@@ -64,7 +64,12 @@ class Config:
     save_every = 2000
     # save every epoch
     save_every_epoch = True
+    # model pathes for doing ensemble
+    # TODO: change it accordingly
+    model_pathes = ['train/ensemble/' + i for i in ['m1', 'm2', 'm3', 'm4']]
+    num_eval = 4000
+
 
 if __name__ == '__main__':
     # for test
-    print(Config.ROOT_DIR)
+    print(Config.model_pathes)

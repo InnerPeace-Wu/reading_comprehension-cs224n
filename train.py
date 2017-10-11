@@ -126,7 +126,7 @@ def main(_):
                  rev_vocab=rev_vocab)
         qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
                            log=True,
-                           training=False,
+                           training=True,
                            sample=4000)
 
 def print_parameters():

@@ -4,11 +4,11 @@
 
 * Almost re-implement the paper: [Machine Comprehension Using Match-LSTM and Answer Pointer](https://arxiv.org/abs/1608.07905)
 
-* It's a simple baseline for the task, I get only 62% f1 score on the dev set with embed_dim 100.
+* It's a simple baseline for the task, I get only `f1: 0.643` and `em: 0.4975` on the dev.
 * Since I only have access to an NV1060 card, so I did only several training and evaluation on dev set.
 * I changed a little bit of the structure of the files.
 
-## train
+## Train
 Please check the cs224n assignment 4 for install dependencies etc.
 
 Set the parameters in `Config.py`.
@@ -17,13 +17,32 @@ then run:
 python train.py
 ```
 
+## Test
+
+If trained multiple models, one can run:
+```python
+python eval_ensemble.py 
+```
+to do ensemble test.
+
+Meanwhile, one can run:
+```python
+python eval_interactive.py
+```
+to do interactive test, where you can input context and question, then take a look what the model get for you.
+
 ## Takeaways 
 
 * random shuffle the training set is important.
 * initialization the weights of rnns is crucial, and i tried to use identity initialization but 
 did not do experiment to see how it differed from xavier or others.
 * regularization is deadly needed.
-* My best result is: `F1: 0.6264` and `EM: 0.48075` for 4000 samples in dev set.
+* My best result is: `F1: 0.643` and `EM: 0.4975` for 4000 samples in dev set.
+
+<div align='center'>
+<img src='files/loss-norms.pdf'>
+</div>
+![loss-norm]['files/loss-norms.pdf']
 
 ## TO DO:
 
@@ -35,23 +54,24 @@ did not do experiment to see how it differed from xavier or others.
 - [x] overfit a minibatch.
 - [x] done tones of things, and miss keeping note.
 - [x] use running average algorithm to draw a nicer loss curve.
+- [x] add interactive mode.
 - [ ] finish qa_answer.py, work with pure json file.
-- [ ] add interactive mode.
 
 
-# Programming Assignment 4(by stanford cs224n)
+## Programming Assignment 4 (by stanford cs224n)
 Welcome to CS224N Project Assignment 4 Reading Comprehension.
 The project has several dependencies that have to be satisfied before running the code. You can install them using your preferred method -- we list here the names of the packages using `pip`.
 
-# Requirements
+## Requirements
 
 The starter code provided pressuposes a working installation of Python 2.7, as well as a TensorFlow 0.12.1.
 
 It should also install all needed dependnecies through
 `pip install -r requirements.txt`.
 
-# Running your assignment
+## Running your assignment
 
+**Be aware that the file structure is a little bit different for this repo.**
 
 You can get started by downloading the datasets and doing dome basic preprocessing:
 

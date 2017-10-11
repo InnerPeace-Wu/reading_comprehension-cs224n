@@ -1,0 +1,1 @@
+model_checkpoint_path: "/tmp/cs224n-squad-train/weights-4000"
