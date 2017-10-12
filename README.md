@@ -13,22 +13,22 @@ Please check the cs224n assignment 4 for installing dependencies etc.
 
 Set the parameters in `Config.py`.
 then run:
-```python
+```shell
 python train.py
 ```
 
 ## Test
 
-**Note that `--` before the keyword.**
+**Note the `--` before the keyword.**
 
 If trained multiple models, one can run:
-```python
+```shell
 python eval_ensemble.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
 ```
 to do ensemble test.
 
 Meanwhile, one can run:
-```python
+```shell
 python eval_interactive.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
 ```
 to do interactive test, where you can input context and question, then take a look what the model get for you.
