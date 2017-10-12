@@ -9,7 +9,7 @@
 * I changed a little bit of the structure of the files.
 
 ## Train
-Please check the cs224n assignment 4 for install dependencies etc.
+Please check the cs224n assignment 4 for installing dependencies etc.
 
 Set the parameters in `Config.py`.
 then run:
