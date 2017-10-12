@@ -23,13 +23,13 @@ python train.py
 
 If trained multiple models, one can run:
 ```shell
-python eval_ensemble.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
+python eval_ensemble.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat' --embed='path/to/embedding'
 ```
 to do ensemble test.
 
 Meanwhile, one can run:
 ```shell
-python eval_interactive.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
+python eval_interactive.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat' --embed='path/to/embedding'
 ```
 to do interactive test, where you can input context and question, then take a look what the model get for you.
 <div align='center'>
