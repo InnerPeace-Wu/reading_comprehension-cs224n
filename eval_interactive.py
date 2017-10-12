@@ -19,11 +19,11 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-tf.app.flags.DEFINE_string("vocab", pjoin(cfg.DATA_DIR, cfg.vocab_file),
+tf.app.flags.DEFINE_string("vocab", "",
                            "the path of vocab.bat")
 tf.app.flags.DEFINE_string("ckpt", cfg.train_dir,
                            "Training directory to load model parameters from to resume training.")
-tf.app.flags.DEFINE_string("embed_path", pjoin(cfg.DATA_DIR, "glove.trimmed." + str(cfg.embed_size) + ".npz"),
+tf.app.flags.DEFINE_string("embed", "",
                            "the path of embedding file.")
 
 FLAGS = tf.app.flags.FLAGS
@@ -31,11 +31,7 @@ FLAGS = tf.app.flags.FLAGS
 def main(_):
 
     data_dir = cfg.DATA_DIR
-    vocab_path = pjoin(data_dir, cfg.vocab_file)
-    vocab, rev_vocab = initialize_vocab(vocab_path)
-
-    # print('embed size: {} for path {}'.format(cfg.embed_size, FLAGS.embed_path))
-    # embedding = np.load(FLAGS.embed_path)['glove']
+    vocab, rev_vocab = initialize_vocab(FLAGS.vocab)
 
     # gpu setting
     config = tf.ConfigProto()
@@ -45,7 +41,7 @@ def main(_):
 
     encoder = Encoder(size=2 * cfg.lstm_num_hidden)
     decoder = Decoder(output_size=2 * cfg.lstm_num_hidden)
-    qa = QASystem(encoder, decoder, FLAGS.embed_path)
+    qa = QASystem(encoder, decoder, FLAGS.embed)
 
     with tf.Session(config=config) as sess:
         init = tf.global_variables_initializer()

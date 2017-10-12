@@ -19,15 +19,17 @@ python train.py
 
 ## Test
 
+**Note that `--` before the keyword.**
+
 If trained multiple models, one can run:
 ```python
-python eval_ensemble.py 
+python eval_ensemble.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
 ```
 to do ensemble test.
 
 Meanwhile, one can run:
 ```python
-python eval_interactive.py
+python eval_interactive.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat/' --embed='path/to/embed/'
 ```
 to do interactive test, where you can input context and question, then take a look what the model get for you.
 <div align='center'>
