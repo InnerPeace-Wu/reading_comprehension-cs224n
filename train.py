@@ -20,11 +20,6 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
-tf.app.flags.DEFINE_string("load_train_dir", "",
-                           "Training directory to load model parameters from to resume training (default: {train_dir}).")
-
-FLAGS = tf.app.flags.FLAGS
-
 
 def initialize_model(session, model, train_dir):
     ckpt = tf.train.get_checkpoint_state(train_dir)
@@ -80,6 +75,10 @@ def main(_):
     vocab_path = pjoin(data_dir, cfg.vocab_file)
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
+    embed_path = pjoin(data_dir, "glove.trimmed." + str(cfg.embed_size) + ".npz")
+    # logging.info('embed size: {} for path {}'.format(cfg.embed_size, embed_path))
+    # embedding = np.load(embed_path)['glove']
+
     c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
     if not os.path.exists(cfg.log_dir):
         os.makedirs(cfg.log_dir)
@@ -92,10 +91,6 @@ def main(_):
 
     print_parameters()
 
-    logging.info(vars(FLAGS))
-    with open(os.path.join(cfg.log_dir, "flags.json"), 'w') as fout:
-        json.dump(FLAGS.__flags, fout)
-
     # gpu setting
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -104,7 +99,7 @@ def main(_):
 
     encoder = Encoder(size=2 * cfg.lstm_num_hidden)
     decoder = Decoder(output_size=2 * cfg.lstm_num_hidden)
-    qa = QASystem(encoder, decoder)
+    qa = QASystem(encoder, decoder, embed_path)
 
     with tf.Session(config=config) as sess:
         init = tf.global_variables_initializer()

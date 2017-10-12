@@ -15,7 +15,7 @@ class Config:
     # data directory
     DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
     # training directory to load or save model.
-    train_dir = 'train/test_plus'
+    train_dir = 'train/ckpt'
     # log direcotry to save log files
     log_dir = 'log'
     # figure directory to save figures

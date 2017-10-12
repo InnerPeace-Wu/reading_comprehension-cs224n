@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import tensorflow as tf
+import numpy as np
 
 from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
@@ -18,8 +19,12 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 
+tf.app.flags.DEFINE_string("vocab", pjoin(cfg.DATA_DIR, cfg.vocab_file),
+                           "the path of vocab.bat")
 tf.app.flags.DEFINE_string("ckpt", cfg.train_dir,
                            "Training directory to load model parameters from to resume training.")
+tf.app.flags.DEFINE_string("embed_path", pjoin(cfg.DATA_DIR, "glove.trimmed." + str(cfg.embed_size) + ".npz"),
+                           "the path of embedding file.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -29,6 +34,9 @@ def main(_):
     vocab_path = pjoin(data_dir, cfg.vocab_file)
     vocab, rev_vocab = initialize_vocab(vocab_path)
 
+    # print('embed size: {} for path {}'.format(cfg.embed_size, FLAGS.embed_path))
+    # embedding = np.load(FLAGS.embed_path)['glove']
+
     # gpu setting
     config = tf.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -37,7 +45,7 @@ def main(_):
 
     encoder = Encoder(size=2 * cfg.lstm_num_hidden)
     decoder = Decoder(output_size=2 * cfg.lstm_num_hidden)
-    qa = QASystem(encoder, decoder)
+    qa = QASystem(encoder, decoder, FLAGS.embed_path)
 
     with tf.Session(config=config) as sess:
         init = tf.global_variables_initializer()

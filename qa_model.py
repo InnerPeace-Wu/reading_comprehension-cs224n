@@ -230,7 +230,7 @@ class Decoder(object):
 
 
 class QASystem(object):
-    def __init__(self, encoder, decoder, *args):
+    def __init__(self, encoder, decoder, embed_path):
         """
         Initializes your System
 
@@ -239,6 +239,7 @@ class QASystem(object):
         :param args: pass in more arguments as needed
         """
         # self.input_size = cfg.batch_size
+        self.embed_path = embed_path
         self.max_grad_norm = cfg.max_grad_norm
         self.encoder = encoder
         self.decoder = decoder
@@ -325,9 +326,9 @@ class QASystem(object):
         Loads distributed word representations based on placeholder tokens
         :return:
         """
-        embed_path = pjoin(data_dir, "glove.trimmed." + str(cfg.embed_size) + ".npz")
-        logging.info('embed size: {} for path {}'.format(cfg.embed_size, embed_path))
-        self.embedding = np.load(embed_path)['glove']
+        # embed_path = pjoin(data_dir, "glove.trimmed." + str(cfg.embed_size) + ".npz")
+        logging.info('embed size: {} for path {}'.format(cfg.embed_size, self.embed_path))
+        self.embedding = np.load(self.embed_path)['glove']
         self.embedding = tf.Variable(self.embedding, dtype=tf.float32, trainable=False)
 
     def optimize(self, session, context, question, answer, lr):
