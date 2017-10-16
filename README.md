@@ -19,11 +19,11 @@ python train.py
 
 ## Test
 
-**Note the `--` before the keyword.**
+**Note the `"--"` before the keyword.**
 
 If trained multiple models, one can run:
 ```shell
-python eval_ensemble.py --ckpt='path/to/ckpt' --vocab='path/to/vocab.bat' --embed='path/to/embedding'
+python eval_ensemble.py
 ```
 to do ensemble test.
 
