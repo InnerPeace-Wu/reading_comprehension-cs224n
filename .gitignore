@@ -1,3 +1,6 @@
+#sublime
+*.sublime-project
+*.sublime-workspace
 # a4
 data
 data/
