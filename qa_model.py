@@ -37,7 +37,7 @@ start_lr = cfg.start_lr
 clip_by_val = cfg.clip_by_val
 # regularizer = cfg.regularizer
 regularizer = tf.contrib.layers.l2_regularizer(cfg.reg)
-keep_prob = cfg.keep_prob
+# keep_prob = cfg.keep_prob
 dtype = cfg.dtype
 
 
@@ -70,19 +70,29 @@ def get_optimizer(opt):
         assert (False)
     return optfn
 
+
 def smooth(a, beta=0.8):
     '''smooth the curve'''
 
     for i in xrange(1, len(a)):
-        a[i] = beta * a[i-1] + (1 - beta)*a[i]
+        a[i] = beta * a[i - 1] + (1 - beta) * a[i]
     return a
+
+
+def softmax_mask_prepro(tensor, mask):  # set huge neg number(-1e10) in padding area
+    assert tensor.get_shape().ndims == mask.get_shape().ndims
+    m0 = tf.subtract(tf.constant(1.0), tf.cast(mask, 'float32'))
+    paddings = tf.multiply(m0, tf.constant(-1e10))
+    tensor = tf.select(mask, tensor, paddings)
+    return tensor
+
 
 class Encoder(object):
     def __init__(self, vocab_dim=embed_dim, size=2 * num_hidden):
         self.size = size
         self.vocab_dim = vocab_dim
 
-    def encode(self, context, context_m, question, question_m, embedding):
+    def encode(self, context, context_m, question, question_m, embedding, keep_prob):
         """
         :return: an encoded representation of your input.
                  It can be context-level representation, word-level representation,
@@ -102,6 +112,10 @@ class Encoder(object):
         with tf.variable_scope('context'):
             con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
             con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+            con_lstm_fw_cell = rnn.DropoutWrapper(con_lstm_fw_cell, input_keep_prob=keep_prob,
+                                                  output_keep_prob=keep_prob)
+            con_lstm_bw_cell = rnn.DropoutWrapper(con_lstm_bw_cell, input_keep_prob=keep_prob,
+                                                  output_keep_prob=keep_prob)
             con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(
                 con_lstm_fw_cell,
                 con_lstm_bw_cell,
@@ -120,6 +134,10 @@ class Encoder(object):
         with tf.variable_scope('question'):
             ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
             ques_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+            ques_lstm_fw_cell = rnn.DropoutWrapper(ques_lstm_fw_cell, input_keep_prob=keep_prob,
+                                                   output_keep_prob=keep_prob)
+            ques_lstm_bw_cell = rnn.DropoutWrapper(ques_lstm_bw_cell, input_keep_prob=keep_prob,
+                                                   output_keep_prob=keep_prob)
             # with GRUcell, one could specify the kernel initializer
             # ques_lstm_fw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
             # ques_lstm_bw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
@@ -162,7 +180,7 @@ class Decoder(object):
     def __init__(self, output_size=2 * num_hidden):
         self.output_size = output_size
 
-    def decode(self, H_r, context_m):
+    def decode(self, H_r, context_m, keep_prob):
         """
         takes in a knowledge representation
         and output a probability estimation over
@@ -203,6 +221,7 @@ class Decoder(object):
         # scores of start token.
         with tf.name_scope('starter_score'):
             s_score = tf.squeeze(tf.matmul(f, wf_e) + bf, axis=[2])
+            s_score = softmax_mask_prepro(s_score, context_m)
             variable_summaries(s_score)
         # for checking out the probabilities of starter index
         with tf.name_scope('starter_prob'):
@@ -218,6 +237,7 @@ class Decoder(object):
 
         with tf.name_scope('end_score'):
             e_score = tf.squeeze(tf.matmul(e_f, wf_e) + bf, axis=[2])
+            e_score = softmax_mask_prepro(e_score, context_m)
             variable_summaries(e_score)
         # for checking out the probabilities of end index
         with tf.name_scope('end_prob'):
@@ -251,8 +271,8 @@ class QASystem(object):
         self.question_m = tf.placeholder(tf.bool, (None, question_max_len))
         self.answer_s = tf.placeholder(tf.int32, (None,))
         self.answer_e = tf.placeholder(tf.int32, (None,))
+        self.keep_prob = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
         # self.batch_size = tf.placeholder(tf.int32,[], name='batch_size')
-
 
         # ==== assemble pieces ====
         with tf.variable_scope("qa",
@@ -270,7 +290,7 @@ class QASystem(object):
             self.starter_learning_rate = tf.placeholder(tf.float32, name='start_lr')
             # TODO: choose how to adapt learning rate at will
             learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-                                                       1000, 0.96, staircase=True)
+                                                       1000, 0.9, staircase=True)
             tf.summary.scalar('learning_rate', learning_rate)
             # self.optimizer = get_optimizer(cfg.opt)
             self.optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -300,8 +320,8 @@ class QASystem(object):
         H_r = self.encoder.encode(  # self.batch_size,
             self.context,
             self.context_m, self.question,
-            self.question_m, self.embedding)
-        self.s_score, self.e_score = self.decoder.decode(H_r, self.context_m)
+            self.question_m, self.embedding, self.keep_prob)
+        self.s_score, self.e_score = self.decoder.decode(H_r, self.context_m, self.keep_prob)
 
     def setup_loss(self):
         """
@@ -351,6 +371,7 @@ class QASystem(object):
                       self.answer_s: answer_start,
                       self.answer_e: answer_end,
                       self.starter_learning_rate: lr,
+                      self.keep_prob: cfg.keep_prob
                       # self.batch_size:self.input_size
                       }
 
@@ -387,6 +408,7 @@ class QASystem(object):
                       self.question: question_data,
                       self.question_m: question_masks,
                       # self.batch_size:100
+                      self.keep_prob: 1.
                       }
 
         output_feed = [self.s_score, self.e_score]
@@ -574,7 +596,6 @@ class QASystem(object):
         # so that you can use your trained model to make predictions, or
         # even continue training
 
-
         tic = time.time()
         params = tf.trainable_variables()
         num_params = sum(map(lambda t: np.prod(tf.shape(t.value()).eval()), params))
@@ -709,6 +730,7 @@ class QASystem(object):
 
         eval_out = 'lr-' + str(lr) + 'f1-em' + c_time + '.pdf'
         plt.savefig(pjoin(cfg.fig_dir, eval_out), format='pdf')
+
 
 if __name__ == '__main__':
     # test

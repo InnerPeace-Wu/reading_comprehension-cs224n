@@ -5,23 +5,24 @@ import os
 import tensorflow as tf
 from os.path import join as pjoin
 
+
 class Config:
     # maximum length of context
-    context_max_len = 400
+    context_max_len = 350
     # maximum length of question
-    question_max_len = 30
+    question_max_len = 25
     # absolute path of the root directory.
     ROOT_DIR = os.path.dirname(__file__)
     # data directory
     DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
     # training directory to load or save model.
-    train_dir = 'train/ckpt'
+    train_dir = 'output/ckpt'
     # log direcotry to save log files
-    log_dir = 'log'
+    log_dir = 'output/log'
     # figure directory to save figures
-    fig_dir = 'fig'
+    fig_dir = 'output/fig'
     # cache directory for saving training data, i.e. losses
-    cache_dir = 'cache'
+    cache_dir = 'output/cache'
     # vacab path
     vocab_file = 'vocab.dat'
     # dataset names
@@ -29,13 +30,13 @@ class Config:
     # dataset suffixes
     suffixes = ['context', 'question']
     # number of hidden units for lstm or GRU
-    lstm_num_hidden = 64
+    lstm_num_hidden = 128
     # embedding size
-    embed_size = 100
+    embed_size = 128
     # batch_size = 32
     batch_size = 32
     # training epochs
-    epochs = 5
+    epochs = 10
     # gradient clipping
     max_grad_norm = 10.0
     # start learning rate
@@ -44,7 +45,7 @@ class Config:
     clip_by_val = 10.
     # dropout keep probability
     # during test, one have to change it to 1.
-    keep_prob = 1.
+    keep_prob = 0.7
     # data type for all
     dtype = tf.float32
     # optimizer: 'adam', 'sgd' or 'adamax'
@@ -53,11 +54,11 @@ class Config:
     opt = 'adam'
     # regularizer with stength 0.01 for final softmax layers.
     # regularizer = tf.contrib.layers.l2_regularizer(0.01)
-    reg = 0.001
+    reg = 0.0001
     # print every n step during training
     print_every = 20
     # summary dictory
-    summary_dir = 'summary/summary_'
+    summary_dir = 'output/tensorboard'
     # evaluate sample during test
     sample = 100
     # save checkpoint every n iteration
