@@ -1,0 +1,11 @@
+---
+
+- step:
+    name: preprocess
+    image: gcr.io/tensorflow/tensorflow:1.3.0-devel-gpu
+    command: bash get_started.sh
+
+- step:
+    name: train model
+    image: gcr.io/tensorflow/tensorflow:1.3.0-devel-gpu
+    command: python train.py

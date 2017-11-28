@@ -23,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 
 def initialize_model(session, model, train_dir):
     ckpt = tf.train.get_checkpoint_state(train_dir)
+    print(train_dir, ckpt)
     v2_path = ckpt.model_checkpoint_path + ".index" if ckpt else ""
     if ckpt and (tf.gfile.Exists(ckpt.model_checkpoint_path) or tf.gfile.Exists(v2_path)):
         logging.info("Reading model parameters from %s" % ckpt.model_checkpoint_path)
@@ -56,6 +57,7 @@ def get_normalized_train_dir(train_dir):
     """
     global_train_dir = '/tmp/cs224n-squad-train'
     if os.path.exists(global_train_dir):
+        print("unlinking")
         os.unlink(global_train_dir)
     if not os.path.exists(train_dir):
         os.makedirs(train_dir)
@@ -117,12 +119,13 @@ def main(_):
         save_train_dir = get_normalized_train_dir(cfg.train_dir)
         qa.train(cfg.start_lr, sess, dataset, answers, save_train_dir,
                  raw_answers=raw_answers,
-                 # debug_num=1000,
+                 # debug_num=100,
                  rev_vocab=rev_vocab)
         qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
                            log=True,
                            training=True,
                            sample=4000)
+
 
 def print_parameters():
     logging.info('======== trained with key parameters ============')
@@ -132,6 +135,7 @@ def print_parameters():
     logging.info('batch size: {}'.format(cfg.batch_size))
     logging.info('start learning rate: {}'.format(cfg.start_lr))
     logging.info('dropout keep probability: {}'.format(cfg.keep_prob))
+
 
 if __name__ == "__main__":
     tf.app.run()

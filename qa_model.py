@@ -21,6 +21,7 @@ from os.path import join as pjoin
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import random
+import pdb
 
 from evaluate import exact_match_score, f1_score
 
@@ -81,9 +82,9 @@ def smooth(a, beta=0.8):
 
 def softmax_mask_prepro(tensor, mask):  # set huge neg number(-1e10) in padding area
     assert tensor.get_shape().ndims == mask.get_shape().ndims
-    m0 = tf.subtract(tf.constant(1.0), tf.cast(mask, 'float32'))
+    m0 = tf.subtract(tf.constant(1.0), tf.cast(mask, tf.float32))
     paddings = tf.multiply(m0, tf.constant(-1e10))
-    tensor = tf.select(mask, tensor, paddings)
+    tensor = tf.where(tf.cast(mask, tf.bool), tensor, paddings)
     return tensor
 
 
@@ -112,10 +113,10 @@ class Encoder(object):
         with tf.variable_scope('context'):
             con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
             con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-            con_lstm_fw_cell = rnn.DropoutWrapper(con_lstm_fw_cell, input_keep_prob=keep_prob,
-                                                  output_keep_prob=keep_prob)
-            con_lstm_bw_cell = rnn.DropoutWrapper(con_lstm_bw_cell, input_keep_prob=keep_prob,
-                                                  output_keep_prob=keep_prob)
+            # con_lstm_fw_cell = rnn.DropoutWrapper(con_lstm_fw_cell, input_keep_prob=keep_prob,
+            #                                        output_keep_prob = keep_prob)
+            # con_lstm_bw_cell = rnn.DropoutWrapper(con_lstm_bw_cell, input_keep_prob=keep_prob,
+            #                                      output_keep_prob=keep_prob)
             con_outputs, con_outputs_states = tf.nn.bidirectional_dynamic_rnn(
                 con_lstm_fw_cell,
                 con_lstm_bw_cell,
@@ -134,10 +135,10 @@ class Encoder(object):
         with tf.variable_scope('question'):
             ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
             ques_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-            ques_lstm_fw_cell = rnn.DropoutWrapper(ques_lstm_fw_cell, input_keep_prob=keep_prob,
-                                                   output_keep_prob=keep_prob)
-            ques_lstm_bw_cell = rnn.DropoutWrapper(ques_lstm_bw_cell, input_keep_prob=keep_prob,
-                                                   output_keep_prob=keep_prob)
+            # ques_lstm_fw_cell = rnn.DropoutWrapper(ques_lstm_fw_cell, input_keep_prob=keep_prob,
+            #                                        output_keep_prob=keep_prob)
+            # ques_lstm_bw_cell = rnn.DropoutWrapper(ques_lstm_bw_cell, input_keep_prob=keep_prob,
+            #                                       output_keep_prob=keep_prob)
             # with GRUcell, one could specify the kernel initializer
             # ques_lstm_fw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
             # ques_lstm_bw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
@@ -221,7 +222,7 @@ class Decoder(object):
         # scores of start token.
         with tf.name_scope('starter_score'):
             s_score = tf.squeeze(tf.matmul(f, wf_e) + bf, axis=[2])
-            s_score = softmax_mask_prepro(s_score, context_m)
+            # s_score = softmax_mask_prepro(s_score, context_m)
             variable_summaries(s_score)
         # for checking out the probabilities of starter index
         with tf.name_scope('starter_prob'):
@@ -237,7 +238,7 @@ class Decoder(object):
 
         with tf.name_scope('end_score'):
             e_score = tf.squeeze(tf.matmul(e_f, wf_e) + bf, axis=[2])
-            e_score = softmax_mask_prepro(e_score, context_m)
+            # e_score = softmax_mask_prepro(e_score, context_m)
             variable_summaries(e_score)
         # for checking out the probabilities of end index
         with tf.name_scope('end_prob'):
@@ -290,7 +291,7 @@ class QASystem(object):
             self.starter_learning_rate = tf.placeholder(tf.float32, name='start_lr')
             # TODO: choose how to adapt learning rate at will
             learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-                                                       1000, 0.9, staircase=True)
+                                                       1000, 0.96, staircase=True)
             tf.summary.scalar('learning_rate', learning_rate)
             # self.optimizer = get_optimizer(cfg.opt)
             self.optimizer = tf.train.AdamOptimizer(learning_rate)
@@ -513,9 +514,9 @@ class QASystem(object):
             if log:
                 logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
                              format(tf1 / train_len, tem / train_len, train_len))
-
-        f1 = 1.0
-        em = 1.0
+        # it was set to 1.0
+        f1 = 0.0
+        em = 0.0
         val_context = dataset[set_name + '_context'][:sample[1]]
         val_question = dataset[set_name + '_question'][:sample[1]]
         # ['Corpus Juris Canonici', 'the Northside', 'Naples', ...]
@@ -557,13 +558,16 @@ class QASystem(object):
         if log:
             logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
                          format(f1 / val_len, em / val_len, val_len))
+        # pdb.set_trace()
 
         if ensemble and training:
             return train_a_s, train_a_e, val_a_s, val_a_e
         elif ensemble:
             return val_a_s, val_a_e
         # else:
-        #     return tf1 / train_len, tem / train_len, f1 / val_len, em / val_len
+        #    return , train_a_e, val_a_s, val_a_e
+        else:
+            return tf1 / train_len, tem / train_len, f1 / val_len, em / val_len
 
     def train(self, lr, session, dataset, answers, train_dir, debug_num=0, raw_answers=None,
               rev_vocab=None):
@@ -686,7 +690,7 @@ class QASystem(object):
             data_dict = {'losses': self.losses, 'norms': self.norms,
                          'train_eval': self.train_eval, 'val_eval': self.val_eval}
             c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
-            data_save_path = pjoin('cache', str(self.iters) + 'iters' + c_time + '.npz')
+            data_save_path = pjoin(cfg.cache_dir, str(self.iters) + 'iters' + c_time + '.npz')
             np.savez(data_save_path, data_dict)
             self.draw_figs(c_time, lr)
 

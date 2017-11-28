@@ -3,7 +3,8 @@
 # and saves preprocessed data into ./data
 # Get directory containing this script
 
-CODE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# CODE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CODE_DIR="$( pwd )"
 
 export PYTHONPATH=$PYTHONPATH:$CODE_DIR
 

@@ -1,4 +1,7 @@
 #sublime
+output_0.002/
+output_0.8/
+code/
 *.sublime-project
 *.sublime-workspace
 # a4
