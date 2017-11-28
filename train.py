@@ -3,7 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
 import json
+import argparse
 
 import tensorflow as tf
 
@@ -19,6 +21,18 @@ import time
 import logging
 
 logging.basicConfig(level=logging.INFO)
+
+
+def parse_arg():
+    parser = argparse.ArgumentParser(description='train qa model')
+    parser.add_argument('--valohai', dest='valohai', type='store_true', default=False)
+
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+
+    args = parser.parse_args()
+    return args
 
 
 def initialize_model(session, model, train_dir):
@@ -66,6 +80,10 @@ def get_normalized_train_dir(train_dir):
 
 
 def main(_):
+    args = parse_arg()
+    if args.valohai:
+        print(json.dump('using valohai mode'))
+        cfg.valohai = True
 
     data_dir = cfg.DATA_DIR
     set_names = cfg.set_names

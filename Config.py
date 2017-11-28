@@ -7,6 +7,8 @@ from os.path import join as pjoin
 
 
 class Config:
+    # valohai mode
+    valohai = False
     # maximum length of context
     context_max_len = 400
     # maximum length of question

@@ -1,3 +1,4 @@
+python-tk
 numpy
 joblib
 nltk >= 3.2.2
