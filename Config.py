@@ -8,17 +8,18 @@ from os.path import join as pjoin
 
 class Config:
     # valohai mode
-    valohai = False
+    valohai = True
     # maximum length of context
     context_max_len = 400
     # maximum length of question
     question_max_len = 30
     # absolute path of the root directory.
     ROOT_DIR = os.path.dirname(__file__)
-    # data directory
-    DATA_DIR = pjoin(ROOT_DIR, 'data', 'squad')
+
     # output directory
-    output = os.getenv('VH_OUTPUTS_DIR', '/valohai/outputs')
+    output = 'outputs' if not valohai else os.getenv('VH_OUTPUTS_DIR', '/valohai/outputs')
+    # data directory
+    DATA_DIR = pjoin(output, 'data', 'squad')
     # training directory to load or save model.
     train_dir = output + '/ckpt'
     # log direcotry to save log files
