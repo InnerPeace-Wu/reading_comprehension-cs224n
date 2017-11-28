@@ -16,30 +16,33 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 random.seed(42)
 np.random.seed(42)
+from Config import Config as cfg
 
 squad_base_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/"
 
 # Size train: 30288272
 # size dev: 4854279
 
-def reporthook(t):
-  """https://github.com/tqdm/tqdm"""
-  last_b = [0]
 
-  def inner(b=1, bsize=1, tsize=None):
-    """
-    b: int, optional
-        Number of blocks just transferred [default: 1].
-    bsize: int, optional
-        Size of each block (in tqdm units) [default: 1].
-    tsize: int, optional
-        Total size (in tqdm units). If [default: None] remains unchanged.
-    """
-    if tsize is not None:
-        t.total = tsize
-    t.update((b - last_b[0]) * bsize)
-    last_b[0] = b
-  return inner
+def reporthook(t):
+    """https://github.com/tqdm/tqdm"""
+    last_b = [0]
+
+    def inner(b=1, bsize=1, tsize=None):
+        """
+        b: int, optional
+            Number of blocks just transferred [default: 1].
+        bsize: int, optional
+            Size of each block (in tqdm units) [default: 1].
+        tsize: int, optional
+            Total size (in tqdm units). If [default: None] remains unchanged.
+        """
+        if tsize is not None:
+            t.total = tsize
+        t.update((b - last_b[0]) * bsize)
+        last_b[0] = b
+    return inner
+
 
 def maybe_download(url, filename, prefix, num_bytes=None):
     """Takes an URL, a filename, and the expected bytes, download
@@ -50,13 +53,13 @@ def maybe_download(url, filename, prefix, num_bytes=None):
         try:
             print("Downloading file {}...".format(url + filename))
             with tqdm(unit='B', unit_scale=True, miniters=1, desc=filename) as t:
-                local_filename, _ = urlretrieve(url + filename, os.path.join(prefix,filename), reporthook=reporthook(t))
+                local_filename, _ = urlretrieve(url + filename, os.path.join(prefix, filename), reporthook=reporthook(t))
         except AttributeError as e:
             print("An error occurred when downloading the file! Please get the dataset using a browser.")
             raise e
     # We have a downloaded file
     # Check the stats and make sure they are ok
-    file_stats = os.stat(os.path.join(prefix,filename))
+    file_stats = os.stat(os.path.join(prefix, filename))
     if num_bytes is None or file_stats.st_size == num_bytes:
         print("File {} successfully loaded".format(filename))
     else:
@@ -72,13 +75,13 @@ def data_from_json(filename):
 
 
 def list_topics(data):
-    list_topics = [data['data'][idx]['title'] for idx in range(0,len(data['data']))]
+    list_topics = [data['data'][idx]['title'] for idx in range(0, len(data['data']))]
     return list_topics
 
 
 def tokenize(sequence):
     tokens = [token.replace("``", '"').replace("''", '"') for token in nltk.word_tokenize(sequence)]
-    return map(lambda x:x.encode('utf8'), tokens)
+    return map(lambda x: x.encode('utf8'), tokens)
 
 
 def token_idx_map(context, context_tokens):
@@ -109,10 +112,10 @@ def read_write_dataset(dataset, tier, prefix):
     qn, an = 0, 0
     skipped = 0
 
-    with open(os.path.join(prefix, tier +'.context'), 'w') as context_file,  \
-         open(os.path.join(prefix, tier +'.question'), 'w') as question_file,\
-         open(os.path.join(prefix, tier +'.answer'), 'w') as text_file, \
-         open(os.path.join(prefix, tier +'.span'), 'w') as span_file:
+    with open(os.path.join(prefix, tier + '.context'), 'w') as context_file,  \
+            open(os.path.join(prefix, tier + '.question'), 'w') as question_file,\
+            open(os.path.join(prefix, tier + '.answer'), 'w') as text_file, \
+            open(os.path.join(prefix, tier + '.span'), 'w') as span_file:
 
         for articles_id in tqdm(range(len(dataset['data'])), desc="Preprocessing {}".format(tier)):
             article_paragraphs = dataset['data'][articles_id]['paragraphs']
@@ -147,7 +150,7 @@ def read_write_dataset(dataset, tier, prefix):
 
                         answer_end = answer_start + len(text)
 
-                        last_word_answer = len(text_tokens[-1]) # add one to get the first char
+                        last_word_answer = len(text_tokens[-1])  # add one to get the first char
 
                         try:
                             a_start_idx = answer_map[answer_start][1]
@@ -166,24 +169,24 @@ def read_write_dataset(dataset, tier, prefix):
                         an += 1
 
     print("Skipped {} question/answer pairs in {}".format(skipped, tier))
-    return qn,an
+    return qn, an
 
 
 def save_files(prefix, tier, indices):
-  with open(os.path.join(prefix, tier + '.context'), 'w') as context_file,  \
-     open(os.path.join(prefix, tier + '.question'), 'w') as question_file,\
-     open(os.path.join(prefix, tier + '.answer'), 'w') as text_file, \
-     open(os.path.join(prefix, tier + '.span'), 'w') as span_file:
+    with open(os.path.join(prefix, tier + '.context'), 'w') as context_file,  \
+            open(os.path.join(prefix, tier + '.question'), 'w') as question_file,\
+            open(os.path.join(prefix, tier + '.answer'), 'w') as text_file, \
+            open(os.path.join(prefix, tier + '.span'), 'w') as span_file:
 
-    for i in indices:
-      context_file.write(linecache.getline(os.path.join(prefix, 'train.context'), i))
-      question_file.write(linecache.getline(os.path.join(prefix, 'train.question'), i))
-      text_file.write(linecache.getline(os.path.join(prefix, 'train.answer'), i))
-      span_file.write(linecache.getline(os.path.join(prefix, 'train.span'), i))
+        for i in indices:
+            context_file.write(linecache.getline(os.path.join(prefix, 'train.context'), i))
+            question_file.write(linecache.getline(os.path.join(prefix, 'train.question'), i))
+            text_file.write(linecache.getline(os.path.join(prefix, 'train.answer'), i))
+            span_file.write(linecache.getline(os.path.join(prefix, 'train.span'), i))
 
 
-def split_tier(prefix, train_percentage = 0.9, shuffle=False):
-    # Get number of lines in file
+def split_tier(prefix, train_percentage=0.9, shuffle=False):
+        # Get number of lines in file
     context_filename = os.path.join(prefix, 'train' + '.context')
     # Get the number of lines
     with open(context_filename) as current_file:
@@ -202,8 +205,8 @@ def split_tier(prefix, train_percentage = 0.9, shuffle=False):
 
 if __name__ == '__main__':
 
-    download_prefix = os.path.join("download", "squad")
-    data_prefix = os.path.join("data", "squad")
+    download_prefix = os.path.join(cfg.output, "download", "squad")
+    data_prefix = os.path.join(cfg.output, "data", "squad")
 
     print("Downloading datasets into {}".format(download_prefix))
     print("Preprocessing datasets into {}".format(data_prefix))

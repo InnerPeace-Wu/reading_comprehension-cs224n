@@ -1,11 +1,12 @@
 import zipfile
 from squad_preprocess import *
+from Config import Config as cfg
 
 
 if __name__ == '__main__':
     glove_base_url = "http://nlp.stanford.edu/data/"
     glove_filename = "glove.6B.zip"
-    prefix = os.path.join("download", "dwr")
+    prefix = os.path.join(cfg.output, "download", "dwr")
 
     print("Storing datasets in {}".format(prefix))
 
