@@ -4,6 +4,7 @@
 # Get directory containing this script
 
 # CODE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+apt-get install python-tk
 CODE_DIR="$( pwd )"
 
 export PYTHONPATH=$PYTHONPATH:$CODE_DIR
