@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-if [-e "/valohai/inputs/data_squad/data.tar.gz" ]; then
-    tar -xvzf /valohai/inputs/data_squad/data.tar.gz -C ./
+if [ -e "/valohai/inputs/data_squad/data.tar.gz" ]; then
+    tar -xvzf /valohai/inputs/data_squad/data.tar.gz
     ls -la ./data/*
     echo "training data in ready"
     time python2 train.py --valohai
