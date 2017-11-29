@@ -27,7 +27,7 @@ python2 $CODE_DIR/squad_preprocess.py
 
 if [-e "/valohai/inputs/glove_zip/*.6B.zip" ]; then
     mkdir ./download/dwr
-    mv /valohai/inputs/*.6B.zip ./download/dwr/
+    mv /valohai/inputs/glove_zip/*.6B.zip ./download/dwr/
     echo "found downloaded glove file"
 fi
 
