@@ -6,7 +6,7 @@
     command: bash get_started.sh
     inputs:
       - name: glove_zip
-      - default:
+        default: ""
 
 - step:
     name: train model
@@ -14,4 +14,4 @@
     command: bash train.sh
     inputs:
       - name: data_squad
-      - default:
+        default: ""
