@@ -23,10 +23,11 @@ DATA_DIR=data
 DOWNLOAD_DIR=download
 mkdir -p $DATA_DIR
 rm -rf $DATA_DIR
-python2 $CODE_DIR/squad_preprocess.py
+# python2 $CODE_DIR/squad_preprocess.py
 
 # Download distributed word representations
-python2 $CODE_DIR/dwr.py
+# python2 $CODE_DIR/dwr.py
 
 # Data processing for TensorFlow
 python2 $CODE_DIR/qa_data.py --glove_dim 100
+python2 train.py --valohai
