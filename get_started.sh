@@ -30,4 +30,4 @@ rm -rf $DATA_DIR
 
 # Data processing for TensorFlow
 python2 $CODE_DIR/qa_data.py --glove_dim 100
-python2 train.py --valohai
+# python2 train.py --valohai
