@@ -23,11 +23,22 @@ DATA_DIR=data
 DOWNLOAD_DIR=download
 mkdir -p $DATA_DIR
 rm -rf $DATA_DIR
-# python2 $CODE_DIR/squad_preprocess.py
+python2 $CODE_DIR/squad_preprocess.py
+
+if [-e "/valohai/inputs/glove_zip/*.6B.zip" ]; then
+    mkdir ./download/dwr
+    mv /valohai/inputs/*.6B.zip ./download/dwr/
+    echo "found downloaded glove file"
+fi
 
 # Download distributed word representations
-# python2 $CODE_DIR/dwr.py
+python2 $CODE_DIR/dwr.py
 
 # Data processing for TensorFlow
 python2 $CODE_DIR/qa_data.py --glove_dim 100
+
+# for valohai platform
+if [ -d "/valohai/outputs"]; then
+    tar -czvf /valohai/outputs/data.tar.gz ./data
+fi
 # python2 train.py --valohai

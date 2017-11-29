@@ -205,8 +205,8 @@ def split_tier(prefix, train_percentage=0.9, shuffle=False):
 
 if __name__ == '__main__':
 
-    download_prefix = os.path.join(cfg.output, "download", "squad")
-    data_prefix = os.path.join(cfg.output, "data", "squad")
+    download_prefix = os.path.join("download", "squad")
+    data_prefix = os.path.join("data", "squad")
 
     print("Downloading datasets into {}".format(download_prefix))
     print("Preprocessing datasets into {}".format(data_prefix))
