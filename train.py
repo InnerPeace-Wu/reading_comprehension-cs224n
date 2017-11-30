@@ -25,11 +25,11 @@ logging.basicConfig(level=logging.INFO)
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='train qa model')
-    parser.add_argument('--valohai', dest='valohai', type='store_true')
+    parser.add_argument('--valohai', dest='valohai', type=int, default=0)
 
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
+    # if len(sys.argv) == 1:
+    #     parser.print_help()
+    #     sys.exit(1)
 
     args = parser.parse_args()
     return args
