@@ -513,12 +513,9 @@ class QASystem(object):
                 tem += exact_match_score(prediction, train_answer[i])
 
             if log:
-                if cfg.valohai:
-                    print(json.dump("Training set ==> F1: {}, EM: {}, for {} samples".
-                                    format(tf1 / train_len, tem / train_len, train_len)))
-                else:
-                    logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
-                                 format(tf1 / train_len, tem / train_len, train_len))
+                logging.info("Training set ==> F1: {}, EM: {}, for {} samples".
+                             format(tf1 / train_len, tem / train_len, train_len))
+
         # it was set to 1.0
         f1 = 0.0
         em = 0.0
@@ -561,12 +558,8 @@ class QASystem(object):
             em += exact_match_score(prediction, val_answer[i])
 
         if log:
-            if cfg.valohai:
-                print(json.dump("Validation   ==> F1: {}, EM: {}, for {} samples".
-                                format(f1 / val_len, em / val_len, val_len)))
-            else:
-                logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
-                             format(f1 / val_len, em / val_len, val_len))
+            logging.info("Validation   ==> F1: {}, EM: {}, for {} samples".
+                         format(f1 / val_len, em / val_len, val_len))
         # pdb.set_trace()
 
         if ensemble and training:
@@ -679,14 +672,13 @@ class QASystem(object):
 
                 if self.iters % print_every == 0:
                     toc = time.time()
-                    if cfg.valohai:
-                        print(json.dump(('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
-                            self.iters, total_iterations, loss, grad_norm, toc - tic))))
-                    else:
-                        logging.info('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
-                            self.iters, total_iterations, loss, grad_norm, toc - tic))
+                    logging.info('iters: {}/{} loss: {} norm: {}. time: {} secs'.format(
+                        self.iters, total_iterations, loss, grad_norm, toc - tic))
+
                     tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers, rev_vocab,
                                                             training=True, log=True, sample=cfg.sample)
+                    if cfg.valohai:
+                        json.dumps({'iters': self.iters, 'loss': loss, 'tf1': tf1, 'tem': tem, 'f1': f1, 'em': em})
                     self.train_eval.append((tf1, tem))
                     self.val_eval.append((f1, em))
                     tic = time.time()
