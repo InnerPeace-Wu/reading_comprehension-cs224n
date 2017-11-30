@@ -21,7 +21,7 @@ class Config:
     # input directory
     input_vh = os.getenv('VH_INPUTS_DIR', '/valohai/inputs')
     # data directory
-    DATA_DIR = pjoin('data', 'squad') if not valohai else pjoin(input_vh, 'data', 'squad')
+    DATA_DIR = pjoin('data', 'squad')
     # training directory to load or save model.
     train_dir = output + '/ckpt'
     # log direcotry to save log files
