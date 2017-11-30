@@ -678,7 +678,7 @@ class QASystem(object):
                     tf1, tem, f1, em = self.evaluate_answer(session, dataset, raw_answers, rev_vocab,
                                                             training=True, log=True, sample=cfg.sample)
                     if cfg.valohai:
-                        print(json.dumps({'iters': self.iters, 'loss': loss, 'tf1': tf1, 'tem': tem, 'f1': f1, 'em': em}))
+                        print(json.dumps({'iters': self.iters, 'loss': loss.item(), 'tf1': tf1, 'tem': tem, 'f1': f1, 'em': em}))
                     self.train_eval.append((tf1, tem))
                     self.val_eval.append((f1, em))
                     tic = time.time()
