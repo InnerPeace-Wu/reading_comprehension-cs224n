@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-sudo apt-get update
-sudo apt-get install python-tk
+apt-get update
+apt-get install python-tk
 
 if [ -e "/valohai/inputs/data_squad/data.tar.gz" ]; then
     tar -xvzf /valohai/inputs/data_squad/data.tar.gz
