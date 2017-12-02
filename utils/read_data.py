@@ -6,12 +6,14 @@ __author__ = 'innerpeace'
 import os
 from os.path import join as pjoin
 import numpy as np
-from Config import Config as cfg
+# from Config import Config as cfg
+from config import cfg
 import logging
 
 # suffixes = ['context', 'question']
 
-def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
+
+def read_answers(data_dir, set_names=['train', 'val'], suffix='.span'):
     '''
     :param data_dir: data directory
     :param set_names: names of datasets, it should be a list
@@ -23,7 +25,7 @@ def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
              'val-question': [(data,mask),...]}
     '''
 
-    #TODO: change the suffix accordingly.
+    # TODO: change the suffix accordingly.
     assert isinstance(set_names, list), 'the type of set_names should be list.'
     assert isinstance(suffix, str), 'the type of set_names should be string.'
 
@@ -40,6 +42,7 @@ def read_answers(data_dir, set_names=['train', 'val'], suffix = '.span'):
         dict[name] = answer
 
     return dict
+
 
 def preprocess_answer(string):
     '''
@@ -63,6 +66,7 @@ def preprocess_answer(string):
             num[0] = num[1] - 1
     return num
 
+
 def read_raw_answers(data_dir, set_names=['train', 'val'], suffixes='.answer'):
     '''
     read the raw answers, i.e. the word version not the index one.
@@ -80,10 +84,11 @@ def read_raw_answers(data_dir, set_names=['train', 'val'], suffixes='.answer'):
         logging.info('Reading answer from file: {}{}'.format(sn, suffixes))
         with open(data_path, 'r') as fdata:
             raw_answer = [line.strip() for line in fdata.readlines()]
-        name = 'raw_' + sn +'_answer'
+        name = 'raw_' + sn + '_answer'
         dict[name] = raw_answer
 
     return dict
+
 
 def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'question']):
     '''
@@ -99,7 +104,7 @@ def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'que
     for sn in set_names:
         for suf in suffixes:
             max_len = cfg.context_max_len if suf == 'context' else cfg.question_max_len
-            data_path = pjoin(data_dir,sn+'.ids.'+suf)
+            data_path = pjoin(data_dir, sn + '.ids.' + suf)
             logging.info('------------ cute line ----------------')
             logging.info('Reading dataset: {}-{}'.format(sn, suf))
             with open(data_path, 'r') as fdata:
@@ -110,6 +115,7 @@ def mask_dataset(data_dir, set_names=['train', 'val'], suffixes=['context', 'que
             dict[name] = masked_data
 
     return dict
+
 
 def mask_input(data_list, max_len):
     '''
@@ -124,5 +130,5 @@ def mask_input(data_list, max_len):
 
 
 if __name__ == '__main__':
-    #one can add test example below
+    # one can add test example below
     pass

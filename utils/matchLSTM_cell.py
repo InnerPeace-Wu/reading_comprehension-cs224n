@@ -7,7 +7,8 @@ import sys
 sys.path.append('..')
 
 import tensorflow as tf
-from Config import Config as cfg
+# from Config import Config as cfg
+from config import cfg
 from utils.identity_initializer import identity_initializer
 
 question_max_len = cfg.question_max_len
@@ -79,8 +80,7 @@ class matchLSTMcell(tf.nn.rnn_cell.RNNCell):
             a = tf.nn.softmax(tf.squeeze(tf.matmul(g, wa_e) + b_a, axis=[2]))
             # mask out the attention over the padding.
             a = tf.multiply(a, self.question_m)
-            question_attend = tf.reduce_sum(tf.multiply(self.h_question, tf.expand_dims(a, axis=[2]))
-                                            , axis=1)
+            question_attend = tf.reduce_sum(tf.multiply(self.h_question, tf.expand_dims(a, axis=[2])), axis=1)
 
             z = tf.concat([inputs, question_attend], axis=1)
 
