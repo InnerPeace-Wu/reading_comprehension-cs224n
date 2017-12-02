@@ -1,6 +1,5 @@
 import zipfile
 from squad_preprocess import *
-from Config import Config as cfg
 
 
 if __name__ == '__main__':

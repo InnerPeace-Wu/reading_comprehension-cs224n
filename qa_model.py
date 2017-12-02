@@ -13,7 +13,7 @@ from tensorflow.python.ops import variable_scope as vs
 
 from utils.matchLSTM_cell import matchLSTMcell
 import tensorflow.contrib.rnn as rnn
-from Config import Config as cfg
+from config import cfg
 from utils.adamax import AdamaxOptimizer
 from utils.identity_initializer import identity_initializer
 import os

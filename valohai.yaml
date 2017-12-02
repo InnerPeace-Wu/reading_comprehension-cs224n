@@ -11,7 +11,28 @@
 - step:
     name: train model
     image: gcr.io/tensorflow/tensorflow:1.3.0-devel-gpu
-    command: bash train.sh
+    command: bash train.sh {parameters}
     inputs:
       - name: data_squad
         default: ""
+    parameters:
+      - name: lr
+        type: float
+        pass-as: -lr {v}
+        default: 0.002
+      - name: keep_prob
+        type: float
+        pass-as: -kp {v}
+        default: 0.9
+      - name: batch_size
+        type: integer
+        pass-as: -bs {v}
+        default: 32
+      - name: state_size
+        type: integer
+        pass-as: -ss {v}
+        default: 64
+      - name: reg
+        type: float
+        pass-as: -reg {v}
+        default: 0.

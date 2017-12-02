@@ -6,6 +6,8 @@ import os
 import sys
 import json
 import argparse
+import pprint
+import pdb
 
 import tensorflow as tf
 
@@ -15,7 +17,7 @@ import numpy as np
 
 from utils.read_data import mask_dataset
 from utils.read_data import read_answers, read_raw_answers
-from Config import Config as cfg
+from config import cfg
 import time
 
 import logging
@@ -25,14 +27,48 @@ logging.basicConfig(level=logging.INFO)
 
 def parse_arg():
     parser = argparse.ArgumentParser(description='train qa model')
-    parser.add_argument('--valohai', dest='valohai', type=int, default=0)
-
+    parser.add_argument('--valohai', dest='valohai', action='store_true')
+    parser.add_argument('--test', dest='test', action='store_true')
+    parser.add_argument('--restore', dest='restore', action='store_true')
+    parser.add_argument('--lr', dest='learning_rate', type=float, default=2e-3, help='learning_rate')
+    parser.add_argument('--keep_prob', dest='keep_prob', type=float, default=0.9, help='keep prob of dropout')
+    parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='batch size to use during training.')
+    parser.add_argument('--embed_size', dest='embed_size', type=int, default=100, help='size of pretrained vocab')
+    parser.add_argument('--state_size', dest='state_size', type=int, default=64, help='size of each model layer')
+    parser.add_argument('--optimizer', dest='optimizer', type=str, default='adam')
+    parser.add_argument('--output_dir', dest='output_dir', type=str, default='outputs', help='directory of outputs')
+    parser.add_argument('--reg', dest='reg', type=float, default=0.001, help='rate of regularization')
     # if len(sys.argv) == 1:
     #     parser.print_help()
     #     sys.exit(1)
 
     args = parser.parse_args()
     return args
+
+
+def update_config(args, c_time):
+    '''update the configuration'''
+    if args.valohai:
+        print(json.dumps('using valohai mode'))
+        cfg.valohai = True
+        cfg.output = os.getenv('VH_OUTPUTS_DIR', '/valohai/outputs')
+    else:
+        cfg.output = args.output_dir
+    if args.restore:
+        cfg.output = cfg.output + '/output_%s' % c_time
+
+    cfg.start_lr = args.learning_rate
+    cfg.keep_prob = args.keep_prob
+    cfg.batch_size = args.batch_size
+    cfg.embed_size = args.embed_size
+    cfg.lstm_num_hidden = args.state_size
+    cfg.opt = args.optimizer
+    cfg.reg = args.reg
+    cfg.train_dir = cfg.output + cfg.train_dir
+    cfg.log_dir = cfg.output + cfg.log_dir
+    cfg.fig_dir = cfg.output + cfg.fig_dir
+    cfg.cache_dir = cfg.output + cfg.cache_dir
+    cfg.summary_dir = cfg.output + cfg.summary_dir
 
 
 def initialize_model(session, model, train_dir):
@@ -80,10 +116,13 @@ def get_normalized_train_dir(train_dir):
 
 
 def main(_):
+    c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
     args = parse_arg()
-    if args.valohai:
-        print(json.dumps('using valohai mode'))
-        cfg.valohai = True
+    update_config(args, c_time)
+    # pprint.pprint(cfg)
+    logging.info(cfg)
+    if args.test:
+        pdb.set_trace()
 
     data_dir = cfg.DATA_DIR
     set_names = cfg.set_names
@@ -99,7 +138,6 @@ def main(_):
     # logging.info('embed size: {} for path {}'.format(cfg.embed_size, embed_path))
     # embedding = np.load(embed_path)['glove']
 
-    c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
     if not os.path.exists(cfg.log_dir):
         os.makedirs(cfg.log_dir)
     if not os.path.exists(cfg.cache_dir):
@@ -135,10 +173,15 @@ def main(_):
         initialize_model(sess, qa, load_train_dir)
 
         save_train_dir = get_normalized_train_dir(cfg.train_dir)
-        qa.train(cfg.start_lr, sess, dataset, answers, save_train_dir,
-                 raw_answers=raw_answers,
-                 # debug_num=100,
-                 rev_vocab=rev_vocab)
+        if args.test:
+            qa.train(cfg.start_lr, sess, dataset, answers, save_train_dir,
+                     raw_answers=raw_answers,
+                     debug_num=100,
+                     rev_vocab=rev_vocab)
+        else:
+            qa.train(cfg.start_lr, sess, dataset, answers, save_train_dir,
+                     raw_answers=raw_answers,
+                     rev_vocab=rev_vocab)
         qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
                            log=True,
                            training=True,

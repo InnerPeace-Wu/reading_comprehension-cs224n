@@ -10,7 +10,7 @@ from qa_model import Encoder, QASystem, Decoder
 from os.path import join as pjoin
 
 from qa_data import sentence_to_token_ids
-from Config import Config as cfg
+from config import cfg
 from train import initialize_vocab, initialize_model, get_normalized_train_dir
 from utils.read_data import mask_input
 import nltk
@@ -27,6 +27,7 @@ tf.app.flags.DEFINE_string("embed", "",
                            "the path of embedding file.")
 
 FLAGS = tf.app.flags.FLAGS
+
 
 def main(_):
 
@@ -67,7 +68,7 @@ def main(_):
             context_in = mask_input(context, cfg.context_max_len)
             question_in = mask_input(question, cfg.question_max_len)
             start, end = qa.answer(sess, [context_in], [question_in])
-            answer = ' '.join(raw_context[start[0]: end[0]+1])
+            answer = ' '.join(raw_context[start[0]: end[0] + 1])
             print('==========================================')
             print('ANSWER: {}'.format(answer))
             print('==========================================')
@@ -87,6 +88,7 @@ def read_intputs():
     question_in = mask_input(question, 20)
     q = [x[0] for x in [question_in]]
     print(q)
+
 
 if __name__ == "__main__":
     tf.app.run()

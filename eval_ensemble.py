@@ -12,7 +12,7 @@ import numpy as np
 
 from utils.read_data import mask_dataset
 from utils.read_data import read_raw_answers
-from Config import Config as cfg
+from config import cfg
 from train import initialize_model, initialize_vocab, get_normalized_train_dir
 from collections import Counter
 import time
@@ -20,6 +20,7 @@ import time
 import logging
 
 logging.basicConfig(level=logging.INFO)
+
 
 def main(_):
     '''Check the Config.py to set up models pathes to be ensembled.'''
@@ -67,10 +68,10 @@ def main(_):
             initialize_model(sess, qa, load_train_dir)
 
             ts, te, vs, ve = qa.evaluate_answer(sess, dataset, raw_answers, rev_vocab,
-                                               log=True,
-                                               ensemble=True,
-                                               training=True,
-                                               sample=cfg.num_eval)
+                                                log=True,
+                                                ensemble=True,
+                                                training=True,
+                                                sample=cfg.num_eval)
             train_s[:, i] = ts
             train_e[:, i] = te
             val_s[:, i] = vs
@@ -89,6 +90,7 @@ def main(_):
                                    sample=cfg.num_eval
                                    )
 
+
 def bin_count(a):
     '''find out the most frequent one.'''
     if not isinstance(a, np.ndarray):
@@ -98,6 +100,7 @@ def bin_count(a):
         o[i] = c_counter(a[i])
 
     return o
+
 
 def c_counter(a):
     c = Counter(a)

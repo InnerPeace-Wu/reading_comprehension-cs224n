@@ -16,7 +16,6 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 random.seed(42)
 np.random.seed(42)
-from Config import Config as cfg
 
 squad_base_url = "https://rajpurkar.github.io/SQuAD-explorer/dataset/"
 
