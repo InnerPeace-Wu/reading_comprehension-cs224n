@@ -80,7 +80,7 @@ def softmax_mask_prepro(tensor, mask):  # set huge neg number(-1e10) in padding 
 
 
 class Encoder(object):
-    def __init__(self, vocab_dim=cfg.embed_dim, size=2 * cfg.lstm_num_hidden):
+    def __init__(self, vocab_dim=cfg.embed_size, size=2 * cfg.lstm_num_hidden):
         self.size = size
         self.vocab_dim = vocab_dim
 
