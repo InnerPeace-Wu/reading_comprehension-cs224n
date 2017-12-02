@@ -14,6 +14,7 @@ from tensorflow.python.ops import variable_scope as vs
 from utils.matchLSTM_cell import matchLSTMcell
 import tensorflow.contrib.rnn as rnn
 from config import cfg
+import pprint
 from utils.adamax import AdamaxOptimizer
 from utils.identity_initializer import identity_initializer
 import os
@@ -28,18 +29,7 @@ from evaluate import exact_match_score, f1_score
 
 logging.basicConfig(level=logging.INFO)
 
-root_dir = cfg.ROOT_DIR
-data_dir = cfg.DATA_DIR
-num_hidden = cfg.lstm_num_hidden
-context_max_len = cfg.context_max_len
-question_max_len = cfg.question_max_len
-embed_dim = cfg.embed_size
-batch_size = cfg.batch_size
-start_lr = cfg.start_lr
-clip_by_val = cfg.clip_by_val
-# regularizer = cfg.regularizer
 regularizer = tf.contrib.layers.l2_regularizer(cfg.reg)
-# keep_prob = cfg.keep_prob
 dtype = cfg.dtype
 
 
@@ -90,7 +80,7 @@ def softmax_mask_prepro(tensor, mask):  # set huge neg number(-1e10) in padding 
 
 
 class Encoder(object):
-    def __init__(self, vocab_dim=embed_dim, size=2 * num_hidden):
+    def __init__(self, vocab_dim=cfg.embed_dim, size=2 * cfg.lstm_num_hidden):
         self.size = size
         self.vocab_dim = vocab_dim
 
@@ -112,8 +102,8 @@ class Encoder(object):
 
         # TODO: one may use truncated backprop
         with tf.variable_scope('context'):
-            con_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-            con_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+            con_lstm_fw_cell = rnn.BasicLSTMCell(cfg.lstm_num_hidden, forget_bias=1.0)
+            con_lstm_bw_cell = rnn.BasicLSTMCell(cfg.lstm_num_hidden, forget_bias=1.0)
             # con_lstm_fw_cell = rnn.DropoutWrapper(con_lstm_fw_cell, input_keep_prob=keep_prob,
             #                                        output_keep_prob = keep_prob)
             # con_lstm_bw_cell = rnn.DropoutWrapper(con_lstm_bw_cell, input_keep_prob=keep_prob,
@@ -134,15 +124,15 @@ class Encoder(object):
         # logging.info('shape of H_context is {}'.format(H_context.shape))
 
         with tf.variable_scope('question'):
-            ques_lstm_fw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
-            ques_lstm_bw_cell = rnn.BasicLSTMCell(num_hidden, forget_bias=1.0)
+            ques_lstm_fw_cell = rnn.BasicLSTMCell(cfg.lstm_num_hidden, forget_bias=1.0)
+            ques_lstm_bw_cell = rnn.BasicLSTMCell(cfg.lstm_num_hidden, forget_bias=1.0)
             # ques_lstm_fw_cell = rnn.DropoutWrapper(ques_lstm_fw_cell, input_keep_prob=keep_prob,
             #                                        output_keep_prob=keep_prob)
             # ques_lstm_bw_cell = rnn.DropoutWrapper(ques_lstm_bw_cell, input_keep_prob=keep_prob,
             #                                       output_keep_prob=keep_prob)
             # with GRUcell, one could specify the kernel initializer
-            # ques_lstm_fw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
-            # ques_lstm_bw_cell = rnn.GRUCell(num_hidden, kernel_initializer=identity_initializer())
+            # ques_lstm_fw_cell = rnn.GRUCell(cfg.lstm_num_hidden, kernel_initializer=identity_initializer())
+            # ques_lstm_bw_cell = rnn.GRUCell(cfg.lstm_num_hidden, kernel_initializer=identity_initializer())
             ques_outputs, ques_outputs_states = tf.nn.bidirectional_dynamic_rnn(ques_lstm_fw_cell,
                                                                                 ques_lstm_bw_cell,
                                                                                 question_embed,
@@ -158,9 +148,9 @@ class Encoder(object):
         # logging.info('shape of H_question is {}'.format(H_question.shape))
 
         with tf.variable_scope('Hr'):
-            matchlstm_fw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question,
+            matchlstm_fw_cell = matchLSTMcell(2 * cfg.lstm_num_hidden, self.size, H_question,
                                               question_m)
-            matchlstm_bw_cell = matchLSTMcell(2 * num_hidden, self.size, H_question,
+            matchlstm_bw_cell = matchLSTMcell(2 * cfg.lstm_num_hidden, self.size, H_question,
                                               question_m)
             H_r, _ = tf.nn.bidirectional_dynamic_rnn(matchlstm_fw_cell,
                                                      matchlstm_bw_cell,
@@ -179,7 +169,7 @@ class Encoder(object):
 
 
 class Decoder(object):
-    def __init__(self, output_size=2 * num_hidden):
+    def __init__(self, output_size=2 * cfg.lstm_num_hidden):
         self.output_size = output_size
 
     def decode(self, H_r, context_m, keep_prob):
@@ -199,16 +189,16 @@ class Decoder(object):
         # initializer = tf.uniform_unit_scaling_initializer(1.0)
 
         shape_Hr = tf.shape(H_r)
-        Wr = tf.get_variable('Wr', [4 * num_hidden, 2 * num_hidden], dtype,
+        Wr = tf.get_variable('Wr', [4 * cfg.lstm_num_hidden, 2 * cfg.lstm_num_hidden], dtype,
                              initializer, regularizer=regularizer
                              )
-        Wh = tf.get_variable('Wh', [4 * num_hidden, 2 * num_hidden], dtype,
+        Wh = tf.get_variable('Wh', [4 * cfg.lstm_num_hidden, 2 * cfg.lstm_num_hidden], dtype,
                              initializer, regularizer=regularizer
                              )
-        Wf = tf.get_variable('Wf', [2 * num_hidden, 1], dtype,
+        Wf = tf.get_variable('Wf', [2 * cfg.lstm_num_hidden, 1], dtype,
                              initializer, regularizer=regularizer
                              )
-        br = tf.get_variable('br', [2 * num_hidden], dtype,
+        br = tf.get_variable('br', [2 * cfg.lstm_num_hidden], dtype,
                              tf.zeros_initializer())
         bf = tf.get_variable('bf', [1, ], dtype,
                              tf.zeros_initializer())
@@ -261,16 +251,18 @@ class QASystem(object):
         :param args: pass in more arguments as needed
         """
         # self.input_size = cfg.batch_size
+        print('---qa model')
+        pprint.pprint(cfg)
         self.embed_path = embed_path
         self.max_grad_norm = cfg.max_grad_norm
         self.encoder = encoder
         self.decoder = decoder
         # ==== set up placeholder tokens ========
         # shape [batch_size, context_max_length]
-        self.context = tf.placeholder(tf.int32, (None, context_max_len))
-        self.context_m = tf.placeholder(tf.bool, (None, context_max_len))
-        self.question = tf.placeholder(tf.int32, (None, question_max_len))
-        self.question_m = tf.placeholder(tf.bool, (None, question_max_len))
+        self.context = tf.placeholder(tf.int32, (None, cfg.context_max_len))
+        self.context_m = tf.placeholder(tf.bool, (None, cfg.context_max_len))
+        self.question = tf.placeholder(tf.int32, (None, cfg.question_max_len))
+        self.question_m = tf.placeholder(tf.bool, (None, cfg.question_max_len))
         self.answer_s = tf.placeholder(tf.int32, (None,))
         self.answer_e = tf.placeholder(tf.int32, (None,))
         self.keep_prob = tf.placeholder(dtype=tf.float32, name="dropout", shape=())
@@ -299,7 +291,7 @@ class QASystem(object):
 
             # TODO: consider graidents clipping.
             gradients = self.optimizer.compute_gradients(self.final_loss)
-            capped_gvs = [(tf.clip_by_value(grad, -clip_by_val, clip_by_val), var) for grad, var in gradients]
+            capped_gvs = [(tf.clip_by_value(grad, -cfg.clip_by_val, cfg.clip_by_val), var) for grad, var in gradients]
             grad = [x[0] for x in gradients]
             self.grad_norm = tf.global_norm(grad)
             tf.summary.scalar('grad_norm', self.grad_norm)
