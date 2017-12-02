@@ -24,6 +24,10 @@
         type: float
         pass-as: -kp {v}
         default: 0.9
+      - name: embed_size
+        type: integer
+        pass-as: -es {v}
+        default: 100
       - name: batch_size
         type: integer
         pass-as: -bs {v}
