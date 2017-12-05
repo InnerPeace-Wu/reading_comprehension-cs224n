@@ -604,7 +604,10 @@ class QASystem(object):
         train_question = np.array(dataset['train_question'])
         train_answer = np.array(answers['train_answer'])
 
-        print_every = cfg.print_every
+        if cfg.valohai:
+            print_every = cfg.print_every // 2
+        else:
+            print_every = cfg.print_every
 
         if debug_num:
             assert isinstance(debug_num, int), 'the debug number should be a integer'
@@ -643,8 +646,9 @@ class QASystem(object):
             logging.info('training epoch ---- {}/{} -----'.format(ep + 1, self.epochs))
             ep_loss = 0.
             for it in xrange(batch_num):
-                sys.stdout.write('> %d / %d \r' % (self.iters % print_every, print_every))
-                sys.stdout.flush()
+                if not cfg.valohai:
+                    sys.stdout.write('> %d / %d \r' % (self.iters % print_every, print_every))
+                    sys.stdout.flush()
                 context = train_context[it * batch_size: (it + 1) * batch_size]
                 question = train_question[it * batch_size: (it + 1) * batch_size]
                 answer = train_answer[it * batch_size: (it + 1) * batch_size]
@@ -689,7 +693,9 @@ class QASystem(object):
             c_time = time.strftime('%Y%m%d_%H%M', time.localtime())
             data_save_path = pjoin(cfg.cache_dir, str(self.iters) + 'iters' + c_time + '.npz')
             np.savez(data_save_path, data_dict)
-            self.draw_figs(c_time, lr)
+            # valohai platform do not support draw figures.
+            if not cfg.valohai:
+                self.draw_figs(c_time, lr)
 
             # plt.show()
 

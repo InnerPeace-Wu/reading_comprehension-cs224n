@@ -59,7 +59,7 @@ if [ -e "/valohai/inputs/data_squad/data.tar.gz" ]; then
         --state_size ${STATE_SIZE} \
         --reg ${REG} \
         --valohai \
-        ${EXTRA_ARGS}
+        # ${EXTRA_ARGS}
 else
     time python2 train.py --lr ${LR} \
         --keep_prob ${KEEP_PROB} \
@@ -68,7 +68,7 @@ else
         --state_size ${STATE_SIZE} \
         --reg ${REG} \
         # --test \
-        ${EXTRA_ARGS}
+        # ${EXTRA_ARGS}
 
 fi
 
